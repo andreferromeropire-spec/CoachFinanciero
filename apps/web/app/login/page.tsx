@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 
-// ── Design tokens (from design file) ────────────────────────────────────────
 const CF = {
   teal:         '#14b8a6',
   tealDark:     '#0d9488',
@@ -28,7 +27,6 @@ const CF = {
   font:         '"Inter", -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
 };
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
 function greeting() {
   const h = new Date().getHours();
   if (h < 12) return "Buenos días 👋";
@@ -36,10 +34,7 @@ function greeting() {
   return "Buenas noches 👋";
 }
 
-// ── Field component ──────────────────────────────────────────────────────────
-function Field({
-  label, placeholder, type = "text", icon, value, onChange, suffix, autoFocus,
-}: {
+function Field({ label, placeholder, type = "text", icon, value, onChange, suffix, autoFocus }: {
   label: string; placeholder: string; type?: string; icon: React.ReactNode;
   value: string; onChange: (v: string) => void; suffix?: React.ReactNode; autoFocus?: boolean;
 }) {
@@ -54,18 +49,15 @@ function Field({
           {icon}
         </span>
         <input
-          type={type}
-          placeholder={placeholder}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
+          type={type} placeholder={placeholder} value={value}
+          onChange={e => onChange(e.target.value)}
+          onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
           autoFocus={autoFocus}
           style={{
             width: '100%', padding: '11px 12px 11px 38px',
             background: CF.card, border: `1.5px solid ${focused ? CF.teal : CF.border}`,
             borderRadius: 10, fontSize: 14, color: CF.text, outline: 'none',
-            fontFamily: CF.font, boxSizing: 'border-box',
+            fontFamily: CF.font, boxSizing: 'border-box' as const,
             boxShadow: focused ? `0 0 0 3px ${CF.teal}1a` : 'none',
             transition: 'border-color 0.15s, box-shadow 0.15s',
           }}
@@ -80,7 +72,6 @@ function Field({
   );
 }
 
-// ── Icons ─────────────────────────────────────────────────────────────────────
 const IconMail = () => (
   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
     <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
@@ -102,15 +93,15 @@ const IconGoogle = () => (
   </svg>
 );
 
-// ── MiniDashboard ─────────────────────────────────────────────────────────────
 function MiniDashboard() {
-  const sparkD = "M2 24 L14 20 L26 22 L38 14 L50 16 L62 10 L74 12 L88 4";
+  const sparkD = "M2 26 L14 21 L26 23 L38 15 L50 17 L62 11 L74 13 L88 5";
   return (
     <div style={{
-      background: CF.card, border: `1px solid ${CF.borderSoft}`, borderRadius: 16, padding: 20,
+      background: CF.card, border: `1px solid ${CF.borderSoft}`, borderRadius: 16, padding: '20px 22px',
       boxShadow: '0 20px 60px -20px rgba(15,23,42,0.15), 0 4px 16px rgba(15,23,42,0.04)',
-      maxWidth: 520, transform: 'rotate(-0.5deg)',
+      transform: 'rotate(-0.5deg)',
     }}>
+      {/* Ingresos + Gastos row */}
       <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
         {/* Income */}
         <div style={{ flex: 1, padding: '12px 14px', background: CF.bg, borderRadius: 10 }}>
@@ -120,8 +111,8 @@ function MiniDashboard() {
             </div>
             <span style={{ fontSize: 10.5, fontWeight: 600, color: CF.green, padding: '2px 6px', background: CF.greenSoft, borderRadius: 4 }}>+12%</span>
           </div>
-          <div style={{ fontSize: 9.5, fontWeight: 600, color: CF.textSubtle, letterSpacing: 0.4, textTransform: 'uppercase' }}>Ingresos del mes</div>
-          <div style={{ fontSize: 17, fontWeight: 600, color: CF.text, marginTop: 2, letterSpacing: -0.3 }}>$ 284.500</div>
+          <div style={{ fontSize: 9.5, fontWeight: 600, color: CF.textSubtle, letterSpacing: 0.4, textTransform: 'uppercase' as const }}>Ingresos del mes</div>
+          <div style={{ fontSize: 17, fontWeight: 600, color: CF.text, marginTop: 3, letterSpacing: -0.3 }}>$ 284.500</div>
         </div>
         {/* Expenses */}
         <div style={{ flex: 1, padding: '12px 14px', background: CF.bg, borderRadius: 10 }}>
@@ -131,14 +122,14 @@ function MiniDashboard() {
             </div>
             <span style={{ fontSize: 10.5, fontWeight: 600, color: CF.rose, padding: '2px 6px', background: CF.roseSoft, borderRadius: 4 }}>-8%</span>
           </div>
-          <div style={{ fontSize: 9.5, fontWeight: 600, color: CF.textSubtle, letterSpacing: 0.4, textTransform: 'uppercase' }}>Gastos del mes</div>
-          <div style={{ fontSize: 17, fontWeight: 600, color: CF.text, marginTop: 2, letterSpacing: -0.3 }}>$ 198.200</div>
+          <div style={{ fontSize: 9.5, fontWeight: 600, color: CF.textSubtle, letterSpacing: 0.4, textTransform: 'uppercase' as const }}>Gastos del mes</div>
+          <div style={{ fontSize: 17, fontWeight: 600, color: CF.text, marginTop: 3, letterSpacing: -0.3 }}>$ 198.200</div>
         </div>
       </div>
       {/* Balance + sparkline */}
       <div style={{ background: CF.bg, borderRadius: 10, padding: '14px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <div style={{ fontSize: 10.5, fontWeight: 600, color: CF.textSubtle, letterSpacing: 0.4, textTransform: 'uppercase' }}>Balance disponible</div>
+          <div style={{ fontSize: 10.5, fontWeight: 600, color: CF.textSubtle, letterSpacing: 0.4, textTransform: 'uppercase' as const }}>Balance disponible</div>
           <div style={{ fontSize: 22, fontWeight: 600, color: CF.text, marginTop: 4, letterSpacing: -0.5 }}>$ 86.300</div>
         </div>
         <svg width="90" height="32" viewBox="0 0 90 32">
@@ -150,14 +141,13 @@ function MiniDashboard() {
   );
 }
 
-// ── Toast ─────────────────────────────────────────────────────────────────────
 function Toast({ msg, onHide }: { msg: string; onHide: () => void }) {
   useEffect(() => { const t = setTimeout(onHide, 2800); return () => clearTimeout(t); }, [onHide]);
   return (
     <div style={{
       position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)',
       background: CF.text, color: '#fff', fontSize: 13, fontWeight: 500,
-      padding: '10px 20px', borderRadius: 10, zIndex: 100, whiteSpace: 'nowrap',
+      padding: '10px 20px', borderRadius: 10, zIndex: 100, whiteSpace: 'nowrap' as const,
       boxShadow: '0 8px 24px rgba(0,0,0,0.15)', fontFamily: CF.font,
     }}>
       {msg}
@@ -165,7 +155,6 @@ function Toast({ msg, onHide }: { msg: string; onHide: () => void }) {
   );
 }
 
-// ── Page ──────────────────────────────────────────────────────────────────────
 export default function LoginPage() {
   const [email, setEmail]       = useState("");
   const [password, setPassword] = useState("");
@@ -205,285 +194,288 @@ export default function LoginPage() {
     }
   }
 
-  const s = { fontFamily: CF.font, color: CF.text };
-
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', ...s }}>
+    <>
+      <style>{`
+        html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .login-root {
+          display: flex;
+          height: 100vh;
+          width: 100vw;
+          overflow: hidden;
+          font-family: ${CF.font};
+          color: ${CF.text};
+        }
+
+        /* ── LEFT ── */
+        .login-left {
+          width: 480px;
+          flex-shrink: 0;
+          background: ${CF.card};
+          display: flex;
+          flex-direction: column;
+          padding: 36px 52px;
+          overflow-y: auto;
+          box-sizing: border-box;
+        }
+        .login-form-area {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          max-width: 360px;
+        }
+
+        /* ── RIGHT ── */
+        .login-right {
+          flex: 1;
+          background: linear-gradient(160deg, ${CF.tealTint} 0%, ${CF.lavenderTint} 100%);
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+          padding: 52px 52px 40px;
+          position: relative;
+          overflow: hidden;
+        }
+        .login-right-deco1 {
+          position: absolute; top: -100px; right: -100px;
+          width: 340px; height: 340px; border-radius: 50%;
+          background: ${CF.tealSoft}; opacity: 0.6; filter: blur(30px);
+          pointer-events: none;
+        }
+        .login-right-deco2 {
+          position: absolute; bottom: -60px; left: 60px;
+          width: 240px; height: 240px; border-radius: 50%;
+          background: ${CF.lavenderSoft}; opacity: 0.45; filter: blur(40px);
+          pointer-events: none;
+        }
+
+        /* ── TABLET (768-1024px) ── */
+        @media (max-width: 1024px) and (min-width: 768px) {
+          .login-left  { width: 420px; padding: 32px 40px; }
+          .login-right { padding: 44px 40px 36px; }
+        }
+
+        /* ── MOBILE (<768px) ── */
+        @media (max-width: 767px) {
+          html, body { overflow: auto; }
+          .login-root  { height: auto; min-height: 100vh; flex-direction: column; }
+          .login-left  {
+            width: 100%; flex-shrink: unset;
+            padding: 44px 28px 36px;
+            background: linear-gradient(180deg, ${CF.tealTint} 0%, #fff 38%);
+            position: relative; overflow: visible;
+          }
+          .login-left::before {
+            content: '';
+            position: absolute; top: -50px; right: -60px;
+            width: 240px; height: 240px; border-radius: 50%;
+            background: ${CF.tealSoft}; filter: blur(50px); opacity: 0.7;
+            pointer-events: none;
+          }
+          .login-left::after {
+            content: '';
+            position: absolute; top: 160px; left: -60px;
+            width: 200px; height: 200px; border-radius: 50%;
+            background: ${CF.lavenderSoft}; filter: blur(60px); opacity: 0.5;
+            pointer-events: none;
+          }
+          .login-form-area { max-width: 100%; }
+          .login-right { display: none; }
+        }
+      `}</style>
+
       {toast && <Toast msg={toast} onHide={() => setToast("")} />}
 
-      {/* ── LEFT: form ──────────────────────────────────────────────────── */}
-      <div style={{
-        width: 'min(540px, 100%)', padding: '44px 56px', display: 'flex',
-        flexDirection: 'column', background: CF.card, boxSizing: 'border-box',
-      }}
-        className="login-left"
-      >
-        {/* Logo */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 0 }}>
-          <div style={{
-            width: 34, height: 34, borderRadius: 10,
-            background: `linear-gradient(135deg, ${CF.teal}, ${CF.tealDark})`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: `0 4px 12px ${CF.teal}44`,
-          }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-            </svg>
-          </div>
-          <div>
-            <div style={{ fontSize: 13.5, fontWeight: 700, color: CF.text, lineHeight: 1.1 }}>Coach Financiero</div>
-            <div style={{ fontSize: 10.5, color: CF.textSubtle, fontWeight: 500 }}>IA Personal Finance</div>
-          </div>
-        </div>
+      <div className="login-root">
 
-        {/* Form area — vertically centered */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', maxWidth: 380 }}>
-          {/* Greeting pill */}
-          <div style={{
-            display: 'inline-flex', alignSelf: 'flex-start', alignItems: 'center', gap: 7,
-            padding: '5px 11px 5px 10px', borderRadius: 999,
-            background: CF.tealTint, border: `1px solid ${CF.tealSoft}`,
-            fontSize: 12, fontWeight: 500, color: CF.tealDark, marginBottom: 20,
-          }}>
-            {greeting()}
+        {/* ── LEFT COLUMN ──────────────────────────────────────────────── */}
+        <div className="login-left">
+
+          {/* Logo */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 0 }}>
+            <div style={{
+              width: 34, height: 34, borderRadius: 10, flexShrink: 0,
+              background: `linear-gradient(135deg, ${CF.teal}, ${CF.tealDark})`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: `0 4px 12px ${CF.teal}44`,
+            }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+              </svg>
+            </div>
+            <div>
+              <div style={{ fontSize: 13.5, fontWeight: 700, color: CF.text, lineHeight: 1.15 }}>Coach Financiero</div>
+              <div style={{ fontSize: 10.5, color: CF.textSubtle, fontWeight: 500 }}>IA Personal Finance</div>
+            </div>
           </div>
 
-          <h1 style={{
-            fontSize: 36, fontWeight: 600, letterSpacing: -0.9, lineHeight: 1.05,
-            margin: 0, marginBottom: 10,
-          }}>
-            Tus finanzas,<br/>
-            <span style={{ color: CF.tealDark }}>en un solo lugar.</span>
-          </h1>
-          <p style={{ fontSize: 15, color: CF.textMuted, margin: '0 0 34px', lineHeight: 1.55 }}>
-            Crea tu cuenta y empieza a ver el balance del mes y a charlar con tu coach IA.
-          </p>
+          {/* Form area */}
+          <div className="login-form-area">
+            {/* Greeting pill */}
+            <div style={{
+              display: 'inline-flex', alignSelf: 'flex-start', alignItems: 'center', gap: 7,
+              padding: '5px 11px', borderRadius: 999,
+              background: CF.tealTint, border: `1px solid ${CF.tealSoft}`,
+              fontSize: 12, fontWeight: 500, color: CF.tealDark, marginBottom: 20,
+            }}>
+              {greeting()}
+            </div>
 
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column' }}>
-            <Field
-              label="Correo electrónico"
-              placeholder="tu@ejemplo.com"
-              icon={<IconMail />}
-              value={email}
-              onChange={setEmail}
-              autoFocus
-            />
-            <div style={{ height: 14 }}/>
-            <Field
-              label="Contraseña"
-              placeholder="••••••••"
-              type="password"
-              icon={<IconLock />}
-              value={password}
-              onChange={setPassword}
-              suffix={
-                <Link href="/forgot-password" style={{ fontSize: 12, color: CF.tealDark, fontWeight: 500, textDecoration: 'none' }}>
-                  ¿Olvidaste?
-                </Link>
-              }
-            />
+            <h1 style={{ fontSize: 34, fontWeight: 600, letterSpacing: -0.8, lineHeight: 1.08, margin: '0 0 10px' }}>
+              Tus finanzas,<br/>
+              <span style={{ color: CF.tealDark }}>en un solo lugar.</span>
+            </h1>
+            <p style={{ fontSize: 14.5, color: CF.textMuted, margin: '0 0 30px', lineHeight: 1.55 }}>
+              Crea tu cuenta y empieza a ver el balance del mes y a charlar con tu coach IA.
+            </p>
 
-            {error && (
-              <div style={{
-                marginTop: 12, padding: '10px 14px', background: '#fff1f2',
-                border: '1px solid #fecdd3', borderRadius: 8,
-                fontSize: 13, color: '#e11d48',
-              }}>
-                {error}
-              </div>
-            )}
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+              <Field label="Correo electrónico" placeholder="tu@ejemplo.com" icon={<IconMail/>} value={email} onChange={setEmail} autoFocus />
+              <div style={{ height: 14 }}/>
+              <Field
+                label="Contraseña" placeholder="••••••••" type="password"
+                icon={<IconLock/>} value={password} onChange={setPassword}
+                suffix={
+                  <Link href="/forgot-password" style={{ fontSize: 12, color: CF.tealDark, fontWeight: 500, textDecoration: 'none' }}>
+                    ¿Olvidaste?
+                  </Link>
+                }
+              />
 
-            {/* Primary CTA */}
-            <button
-              type="submit"
-              disabled={loading}
-              style={{
-                marginTop: 24, padding: '13px 18px',
-                background: loading ? `${CF.teal}99` : CF.teal,
+              {error && (
+                <div style={{ marginTop: 12, padding: '10px 14px', background: '#fff1f2', border: '1px solid #fecdd3', borderRadius: 8, fontSize: 13, color: '#e11d48' }}>
+                  {error}
+                </div>
+              )}
+
+              {/* Primary CTA */}
+              <button type="submit" disabled={loading} style={{
+                marginTop: 22, padding: '13px 18px',
+                background: loading ? `${CF.teal}aa` : CF.teal,
                 color: '#fff', border: 'none', borderRadius: 11,
                 fontSize: 14.5, fontWeight: 600, fontFamily: CF.font, cursor: loading ? 'not-allowed' : 'pointer',
                 boxShadow: `0 1px 2px rgba(13,148,136,0.3), 0 8px 20px -4px ${CF.teal}66, inset 0 1px 0 rgba(255,255,255,0.2)`,
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                 transition: 'opacity 0.15s',
-              }}
-            >
-              {loading ? (
-                <>
-                  <span style={{
-                    width: 14, height: 14, border: '2px solid rgba(255,255,255,0.3)',
-                    borderTopColor: '#fff', borderRadius: '50%',
-                    animation: 'spin 0.7s linear infinite', display: 'inline-block',
-                  }}/>
-                  Entrando…
-                </>
-              ) : (
-                <>
-                  Empezar gratis
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                    <path d="M5 12h14m0 0-6-6m6 6-6 6" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                </>
-              )}
-            </button>
+              }}>
+                {loading ? (
+                  <>
+                    <span style={{ width: 14, height: 14, border: '2px solid rgba(255,255,255,0.35)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite', display: 'inline-block' }}/>
+                    Entrando…
+                  </>
+                ) : (
+                  <>
+                    Empezar gratis
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                      <path d="M5 12h14m0 0-6-6m6 6-6 6" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </>
+                )}
+              </button>
 
-            {/* Divider */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '18px 0 14px' }}>
-              <div style={{ flex: 1, height: 1, background: CF.borderSoft }}/>
-              <span style={{ fontSize: 11.5, color: CF.textSubtle, letterSpacing: 0.5, textTransform: 'uppercase', fontWeight: 500 }}>
-                o continuar con
-              </span>
-              <div style={{ flex: 1, height: 1, background: CF.borderSoft }}/>
-            </div>
+              {/* Divider */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '16px 0 12px' }}>
+                <div style={{ flex: 1, height: 1, background: CF.borderSoft }}/>
+                <span style={{ fontSize: 11, color: CF.textSubtle, letterSpacing: 0.5, textTransform: 'uppercase', fontWeight: 500 }}>
+                  o continuar con
+                </span>
+                <div style={{ flex: 1, height: 1, background: CF.borderSoft }}/>
+              </div>
 
-            {/* Google */}
-            <button
-              type="button"
-              onClick={() => setToast("Google OAuth — próximamente disponible")}
-              style={{
+              {/* Google */}
+              <button type="button" onClick={() => setToast("Google OAuth — próximamente disponible")} style={{
                 width: '100%', padding: '12px 18px',
                 background: CF.card, color: CF.text,
                 border: `1.5px solid ${CF.border}`, borderRadius: 11,
                 fontSize: 14, fontWeight: 500, fontFamily: CF.font, cursor: 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-              }}
-            >
-              <IconGoogle />
-              Continuar con Google
-            </button>
-          </form>
+                transition: 'background 0.15s',
+              }}>
+                <IconGoogle/>
+                Continuar con Google
+              </button>
+            </form>
 
-          {/* Security note */}
-          <div style={{ marginTop: 18, fontSize: 12.5, color: CF.textSubtle, display: 'flex', alignItems: 'center', gap: 6 }}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
-              <path d="M12 2 4 6v6c0 5 3.5 9 8 10 4.5-1 8-5 8-10V6l-8-4Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/>
-              <path d="m9 12 2 2 4-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-            Cifrado extremo a extremo · Acceso con contraseña única
+            {/* Security note */}
+            <div style={{ marginTop: 16, fontSize: 12, color: CF.textSubtle, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                <path d="M12 2 4 6v6c0 5 3.5 9 8 10 4.5-1 8-5 8-10V6l-8-4Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/>
+                <path d="m9 12 2 2 4-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              Cifrado extremo a extremo · Acceso con contraseña única
+            </div>
+
+            {/* Register link */}
+            <p style={{ marginTop: 18, fontSize: 13.5, color: CF.textMuted, textAlign: 'center' }}>
+              ¿No tienes cuenta?{" "}
+              <Link href="/register" style={{ color: CF.tealDark, fontWeight: 600, textDecoration: 'none' }}>
+                Regístrate
+              </Link>
+            </p>
           </div>
 
-          {/* Register link */}
-          <p style={{ marginTop: 20, fontSize: 13.5, color: CF.textMuted, textAlign: 'center' }}>
-            ¿No tienes cuenta?{" "}
-            <Link href="/register" style={{ color: CF.tealDark, fontWeight: 600, textDecoration: 'none' }}>
-              Regístrate
-            </Link>
-          </p>
-        </div>
-
-        {/* Footer */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12.5, color: CF.textSubtle }}>
-          <span>v2.5 · Prompt 5</span>
-          <div style={{ display: 'flex', gap: 12 }}>
-            <Link href="/terms" style={{ color: CF.textMuted, textDecoration: 'none' }}>Términos</Link>
-            <Link href="/privacy" style={{ color: CF.textMuted, textDecoration: 'none' }}>Privacidad</Link>
-          </div>
-        </div>
-      </div>
-
-      {/* ── RIGHT: preview panel ─────────────────────────────────────────── */}
-      <div
-        className="login-right"
-        style={{
-          flex: 1, background: `linear-gradient(160deg, ${CF.tealTint} 0%, ${CF.lavenderTint} 100%)`,
-          position: 'relative', overflow: 'hidden', padding: 48,
-          display: 'flex', flexDirection: 'column', justifyContent: 'center',
-        }}
-      >
-        {/* Decorative blurred circles */}
-        <div style={{
-          position: 'absolute', top: -120, right: -120, width: 380, height: 380,
-          borderRadius: '50%', background: CF.tealSoft, opacity: 0.55, filter: 'blur(30px)',
-          pointerEvents: 'none',
-        }}/>
-        <div style={{
-          position: 'absolute', bottom: -80, left: 80, width: 260, height: 260,
-          borderRadius: '50%', background: CF.lavenderSoft, opacity: 0.5, filter: 'blur(40px)',
-          pointerEvents: 'none',
-        }}/>
-
-        {/* Coach quote */}
-        <div style={{ position: 'relative', marginBottom: 28, maxWidth: 520 }}>
-          <div style={{
-            fontSize: 13, fontWeight: 500, color: CF.tealDark, letterSpacing: 0.4,
-            textTransform: 'uppercase', marginBottom: 14,
-            display: 'flex', alignItems: 'center', gap: 8,
-          }}>
-            <span style={{
-              width: 6, height: 6, borderRadius: '50%', background: CF.teal,
-              boxShadow: `0 0 0 4px ${CF.tealSoft}`,
-              display: 'inline-block', flexShrink: 0,
-            }}/>
-            Tu coach, esta mañana
-          </div>
-          <div style={{ fontSize: 26, fontWeight: 500, color: CF.text, letterSpacing: -0.5, lineHeight: 1.25 }}>
-            "Este mes gastaste un 12% menos en comida.
-            Si mantienes el ritmo, llegas a tu meta de ahorro en{" "}
-            <span style={{ color: CF.tealDark, fontWeight: 600 }}>3 meses</span>."
+          {/* Footer */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, color: CF.textSubtle }}>
+            <span>v2.5 · Prompt 5</span>
+            <div style={{ display: 'flex', gap: 12 }}>
+              <Link href="/terms"   style={{ color: CF.textMuted, textDecoration: 'none' }}>Términos</Link>
+              <Link href="/privacy" style={{ color: CF.textMuted, textDecoration: 'none' }}>Privacidad</Link>
+            </div>
           </div>
         </div>
 
-        {/* Mini dashboard */}
-        <div style={{ position: 'relative', marginBottom: 40 }}>
-          <MiniDashboard />
-        </div>
+        {/* ── RIGHT COLUMN ─────────────────────────────────────────────── */}
+        <div className="login-right">
+          <div className="login-right-deco1"/>
+          <div className="login-right-deco2"/>
 
-        {/* Integration chips */}
-        <div style={{
-          position: 'absolute', bottom: 36, left: 48, right: 48,
-          display: 'flex', alignItems: 'center', gap: 14, fontSize: 11.5,
-          color: CF.textMuted, fontWeight: 500, letterSpacing: 0.3, textTransform: 'uppercase',
-          flexWrap: 'wrap',
-        }}>
-          <span>Conectado con</span>
-          {["Mercado Pago", "PayPal", "Wise", "Galicia", "BBVA"].map((name) => (
-            <span key={name} style={{
-              padding: '5px 10px', background: 'rgba(255,255,255,0.7)',
-              border: `1px solid ${CF.borderSoft}`, borderRadius: 6,
-              fontSize: 11, fontWeight: 500, color: CF.textMuted,
-              textTransform: 'none', letterSpacing: 0,
-              backdropFilter: 'blur(8px)',
+          {/* TOP: Coach quote */}
+          <div style={{ position: 'relative', maxWidth: 560 }}>
+            <div style={{
+              fontSize: 12.5, fontWeight: 600, color: CF.tealDark, letterSpacing: 0.6,
+              textTransform: 'uppercase', marginBottom: 16,
+              display: 'flex', alignItems: 'center', gap: 8,
             }}>
-              {name}
-            </span>
-          ))}
-        </div>
-      </div>
+              <span style={{
+                width: 6, height: 6, borderRadius: '50%', background: CF.teal,
+                boxShadow: `0 0 0 4px ${CF.tealSoft}`, display: 'inline-block', flexShrink: 0,
+              }}/>
+              Tu coach, esta mañana
+            </div>
+            <div style={{ fontSize: 27, fontWeight: 500, color: CF.text, letterSpacing: -0.5, lineHeight: 1.3 }}>
+              "Este mes gastaste un 12% menos en comida.
+              Si mantienes el ritmo, llegas a tu meta de ahorro en{" "}
+              <span style={{ color: CF.tealDark, fontWeight: 600 }}>3 meses</span>."
+            </div>
+          </div>
 
-      <style>{`
-        @keyframes spin { to { transform: rotate(360deg); } }
-        @media (max-width: 767px) {
-          .login-right { display: none !important; }
-          .login-left {
-            width: 100% !important;
-            padding: 40px 28px !important;
-            min-height: 100vh;
-            background: linear-gradient(180deg, ${CF.tealTint} 0%, #fff 40%) !important;
-            position: relative;
-          }
-          .login-left::before {
-            content: '';
-            position: absolute;
-            top: -60px; right: -80px;
-            width: 260px; height: 260px;
-            border-radius: 50%;
-            background: ${CF.tealSoft};
-            filter: blur(50px);
-            opacity: 0.7;
-            pointer-events: none;
-          }
-          .login-left::after {
-            content: '';
-            position: absolute;
-            top: 180px; left: -80px;
-            width: 220px; height: 220px;
-            border-radius: 50%;
-            background: ${CF.lavenderSoft};
-            filter: blur(60px);
-            opacity: 0.5;
-            pointer-events: none;
-          }
-        }
-      `}</style>
-    </div>
+          {/* MIDDLE: Mini dashboard */}
+          <div style={{ position: 'relative' }}>
+            <MiniDashboard/>
+          </div>
+
+          {/* BOTTOM: Integrations */}
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 11, fontWeight: 600, color: CF.textMuted, letterSpacing: 0.5, textTransform: 'uppercase', marginRight: 4 }}>
+              Conectado con
+            </span>
+            {["Mercado Pago", "PayPal", "Wise", "Galicia", "BBVA"].map(name => (
+              <span key={name} style={{
+                padding: '5px 10px', background: 'rgba(255,255,255,0.75)',
+                border: `1px solid ${CF.borderSoft}`, borderRadius: 6,
+                fontSize: 11, fontWeight: 500, color: CF.textMuted,
+                backdropFilter: 'blur(8px)',
+              }}>
+                {name}
+              </span>
+            ))}
+          </div>
+        </div>
+
+      </div>
+    </>
   );
 }
