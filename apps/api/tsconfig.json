@@ -13,9 +13,10 @@
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
+    "composite": false,
     "baseUrl": ".",
     "paths": {
-      "@coach/db": ["../../packages/db/src/index.ts"]
+      "@coach/db": ["../../packages/db/dist/index.d.ts"]
     }
   },
   "include": ["src/**/*"],
