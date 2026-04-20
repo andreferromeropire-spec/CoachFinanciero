@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import useSWR from "swr";
 import { fetcher } from "../../lib/api";
 
@@ -54,8 +54,14 @@ const NAV = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const router   = useRouter();
   const { data: notifData } = useSWR<NotifData>("/api/notifications", fetcher, { refreshInterval: 30_000 });
   const unread = notifData?.unreadCount ?? 0;
+
+  function handleLogout() {
+    localStorage.removeItem("coach_token");
+    router.push("/login");
+  }
 
   return (
     <aside className="w-60 bg-white border-r border-border flex flex-col h-screen sticky top-0 shrink-0 shadow-[1px_0_0_0_#E2E8F0]">
@@ -120,8 +126,21 @@ export function Sidebar() {
       )}
 
       {/* Footer */}
-      <div className="px-5 py-4 border-t border-border">
-        <p className="text-[11px] text-lo">v0.4 · Prompt 4</p>
+      <div className="px-3 py-3 border-t border-border">
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium
+                     text-mid hover:text-rose hover:bg-rose/8 transition-all duration-200 group"
+        >
+          <span className="text-lo group-hover:text-rose transition-colors">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+          </span>
+          <span>Cerrar sesión</span>
+        </button>
       </div>
     </aside>
   );
