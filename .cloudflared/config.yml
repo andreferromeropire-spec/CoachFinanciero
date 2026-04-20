@@ -1,0 +1,19 @@
+# Cloudflare Tunnel - Coach Financiero IA
+# Reemplazá TUNDOMINIO.com por tu dominio real (ej: midominio.com)
+# Después de crear el tunnel, reemplazá TUNNEL_ID por el ID obtenido con:
+#   cloudflared tunnel create coachfinanciero
+
+tunnel: coachfinanciero
+credentials-file: ~/.cloudflared/TUNNEL_ID.json
+
+ingress:
+  # Frontend Next.js
+  - hostname: coach.TUNDOMINIO.com
+    service: http://localhost:3000
+
+  # Backend Express (webhooks de MP/PayPal/Wise apuntan aquí)
+  - hostname: coach-api.TUNDOMINIO.com
+    service: http://localhost:4000
+
+  # Catch-all obligatorio
+  - service: http_status:404

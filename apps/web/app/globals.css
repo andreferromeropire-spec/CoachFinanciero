@@ -1,0 +1,76 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-base:    #F8FAFC;
+    --color-surface: #FFFFFF;
+    --color-raised:  #F1F5F9;
+    --color-border:  #E2E8F0;
+    --color-teal:    #14B8A6;
+    --color-hi:      #1E2937;
+    --color-mid:     #64748B;
+    --color-lo:      #94A3B8;
+    --shadow-card:   0 1px 3px 0 rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.04);
+    --shadow-hover:  0 10px 25px -5px rgb(0 0 0 / 0.10), 0 4px 10px -5px rgb(0 0 0 / 0.06);
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    background-color: var(--color-base);
+    color: var(--color-hi);
+    font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  }
+
+  /* Light mode scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
+  * { scrollbar-width: thin; scrollbar-color: #CBD5E1 transparent; }
+}
+
+@layer components {
+  .card {
+    @apply bg-surface border border-border rounded-card shadow-card transition-all duration-250;
+  }
+  .card-hover {
+    @apply hover:-translate-y-1 hover:shadow-card-lg cursor-default;
+  }
+  .section-title {
+    @apply text-xs font-semibold text-lo uppercase tracking-widest;
+  }
+  .btn-primary {
+    @apply bg-teal hover:bg-teal-hover text-white font-semibold text-sm rounded-pill
+           px-5 py-2.5 transition-all duration-250 hover:shadow-glow-teal hover:-translate-y-0.5;
+  }
+  .btn-ghost {
+    @apply text-mid hover:text-hi text-sm transition-colors duration-200;
+  }
+  .input-light {
+    @apply bg-white border border-border text-hi text-sm rounded-xl px-3 py-2
+           placeholder:text-lo focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal
+           transition-all duration-200;
+  }
+  .select-light {
+    @apply bg-white border border-border text-hi text-sm rounded-xl px-3 py-2
+           focus:outline-none focus:ring-2 focus:ring-teal/30 focus:border-teal
+           transition-all duration-200;
+  }
+  .badge {
+    @apply text-xs font-medium px-2.5 py-1 rounded-lg border;
+  }
+  .badge-teal {
+    @apply badge bg-teal/10 text-teal border-teal/20;
+  }
+  .badge-muted {
+    @apply badge bg-raised text-mid border-border;
+  }
+}
