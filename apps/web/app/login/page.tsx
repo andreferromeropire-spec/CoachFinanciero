@@ -81,7 +81,7 @@ export default function LoginPage() {
 
         .lr {
           display: grid;
-          grid-template-columns: 1fr 1fr;
+          grid-template-columns: 5fr 7fr;
           min-height: 100vh;
         }
 
@@ -108,7 +108,8 @@ export default function LoginPage() {
           display: flex;
           flex-direction: column;
           justify-content: space-between;
-          padding: 3rem;
+          align-items: flex-start;
+          padding: 3rem 4rem;
           position: relative;
           overflow: hidden;
         }
@@ -330,9 +331,9 @@ export default function LoginPage() {
         <div className="lright">
 
           {/* ── QUOTE + DASHBOARD (vertically centered) ── */}
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", position: "relative", zIndex: 1 }}>
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", position: "relative", zIndex: 1, maxWidth: 620, width: "100%" }}>
             {/* Quote */}
-            <div style={{ marginBottom: 28, maxWidth: 480 }}>
+            <div style={{ marginBottom: 28 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
                 <span style={{ width: 7, height: 7, borderRadius: "50%", background: C.teal, boxShadow: `0 0 0 4px ${C.tealSoft}`, display: "inline-block", flexShrink: 0 }}/>
                 <span style={{ fontSize: 11.5, fontWeight: 700, color: C.tealDark, letterSpacing: 0.8, textTransform: "uppercase" }}>Tu coach, esta mañana</span>
@@ -347,7 +348,7 @@ export default function LoginPage() {
             {/* Mini dashboard card */}
             <div style={{
               background: C.white, border: `1px solid ${C.borderFt}`, borderRadius: 18,
-              padding: "20px 22px", maxWidth: 460,
+              padding: "22px 26px", width: "100%",
               boxShadow: "0 24px 60px -16px rgba(15,23,42,0.14), 0 4px 16px rgba(15,23,42,0.04)",
               transform: "rotate(-0.4deg)",
             }}>
@@ -379,9 +380,9 @@ export default function LoginPage() {
                   <div style={{ fontSize: 9.5, fontWeight: 600, color: C.lo, letterSpacing: 0.5, textTransform: "uppercase" }}>Balance disponible</div>
                   <div style={{ fontSize: 22, fontWeight: 600, color: C.text, marginTop: 4, letterSpacing: -0.5 }}>$ 86.300</div>
                 </div>
-                <svg width="90" height="32" viewBox="0 0 90 32">
-                  <path d="M2 26 L14 21 L26 23 L38 15 L50 17 L62 11 L74 13 L88 5" stroke={C.teal} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M2 26 L14 21 L26 23 L38 15 L50 17 L62 11 L74 13 L88 5 L88 32 L2 32 Z" fill={C.tealSoft} opacity="0.45"/>
+                <svg width="140" height="36" viewBox="0 0 140 36">
+                  <path d="M2 30 L22 24 L40 27 L60 18 L78 20 L98 13 L116 15 L138 6" stroke={C.teal} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M2 30 L22 24 L40 27 L60 18 L78 20 L98 13 L116 15 L138 6 L138 36 L2 36 Z" fill={C.tealSoft} opacity="0.4"/>
                 </svg>
               </div>
             </div>
