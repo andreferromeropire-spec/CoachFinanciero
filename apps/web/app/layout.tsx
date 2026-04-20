@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Sidebar } from "./components/Sidebar";
-import { BottomNav } from "./components/BottomNav";
+import { ClientShell } from "./components/ClientShell";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -36,15 +35,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="apple-mobile-web-app-title" content="CoachIA" />
       </head>
       <body className="bg-base text-hi min-h-screen flex font-sans antialiased">
-        {/* Sidebar only visible on md+ */}
-        <div className="hidden md:block">
-          <Sidebar />
-        </div>
-        <main className="flex-1 overflow-auto min-h-screen pb-16 md:pb-0">
-          {children}
-        </main>
-        {/* Bottom nav only visible on mobile */}
-        <BottomNav />
+        <ClientShell>{children}</ClientShell>
       </body>
     </html>
   );

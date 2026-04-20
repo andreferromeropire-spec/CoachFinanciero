@@ -6,104 +6,58 @@ import { useRouter } from "next/navigation";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 
-/* ── Helpers ─────────────────────────────────────────────────────────────── */
+/* ── Password strength ───────────────────────────────────────────────────── */
 
-function greeting() {
-  const h = new Date().getHours();
-  if (h < 12) return "Buenos días ☀️";
-  if (h < 19) return "Buenas tardes 🌤️";
-  return "Buenas noches 🌙";
+function getStrength(pw: string): { level: 0 | 1 | 2 | 3; label: string; color: string } {
+  if (pw.length === 0) return { level: 0, label: "", color: "" };
+  let score = 0;
+  if (pw.length >= 8) score++;
+  if (/[A-Z]/.test(pw)) score++;
+  if (/[0-9]/.test(pw)) score++;
+  if (/[^A-Za-z0-9]/.test(pw)) score++;
+  if (score <= 1) return { level: 1, label: "Débil", color: "bg-danger" };
+  if (score === 2) return { level: 2, label: "Media", color: "bg-warning" };
+  return { level: 3, label: "Fuerte", color: "bg-success" };
 }
 
-/* ── Sparkline SVG ───────────────────────────────────────────────────────── */
+/* ── Right column preview ────────────────────────────────────────────────── */
 
-function Sparkline() {
-  const points = [40, 55, 42, 68, 52, 75, 60, 80, 65, 88, 70, 95];
-  const max = Math.max(...points);
-  const min = Math.min(...points);
-  const w = 120;
-  const h = 36;
-  const xs = points.map((_, i) => (i / (points.length - 1)) * w);
-  const ys = points.map((p) => h - ((p - min) / (max - min)) * h);
-  const d = xs.map((x, i) => `${i === 0 ? "M" : "L"}${x},${ys[i]}`).join(" ");
-  return (
-    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} fill="none">
-      <path d={d} stroke="rgba(255,255,255,0.7)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx={xs[xs.length - 1]} cy={ys[ys.length - 1]} r="3" fill="white" />
-    </svg>
-  );
-}
+const STATS = [
+  { value: "3.2M+", label: "transacciones analizadas" },
+  { value: "98%",   label: "precisión en categorías" },
+  { value: "24h",   label: "soporte promedio" },
+];
 
-/* ── Right panel preview card ────────────────────────────────────────────── */
-
-function PreviewCard() {
-  return (
-    <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-5 shadow-xl w-full max-w-xs">
-      <p className="text-white/60 text-xs font-semibold uppercase tracking-wider mb-4">Resumen del mes</p>
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <span className="text-white/70 text-xs">INGRESOS DEL MES</span>
-          <div className="flex items-center gap-2">
-            <span className="text-white font-bold text-sm font-mono">$ 284.500</span>
-            <span className="text-[10px] bg-emerald-400/20 text-emerald-300 border border-emerald-400/30 rounded-full px-1.5 py-0.5 font-semibold">+10%</span>
-          </div>
-        </div>
-        <div className="flex items-center justify-between">
-          <span className="text-white/70 text-xs">GASTOS DEL MES</span>
-          <div className="flex items-center gap-2">
-            <span className="text-white font-bold text-sm font-mono">$ 198.200</span>
-            <span className="text-[10px] bg-red-400/20 text-red-300 border border-red-400/30 rounded-full px-1.5 py-0.5 font-semibold">-8%</span>
-          </div>
-        </div>
-        <div className="h-px bg-white/10" />
-        <div className="flex items-center justify-between">
-          <span className="text-white/70 text-xs">BALANCE DISPONIBLE</span>
-          <span className="text-white font-bold text-base font-mono">$ 86.300</span>
-        </div>
-        <div className="pt-1">
-          <Sparkline />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ── Right column ────────────────────────────────────────────────────────── */
-
-function RightColumn({ title = "Conectado con tus finanzas" }: { title?: string }) {
+function RightColumn() {
   return (
     <div className="hidden lg:flex flex-col justify-between bg-gradient-to-br from-[#0d9488] to-[#0f766e] p-12 relative overflow-hidden">
-      {/* Background circles */}
       <div className="absolute -top-20 -right-20 w-72 h-72 bg-white/5 rounded-full" />
       <div className="absolute -bottom-16 -left-16 w-56 h-56 bg-white/5 rounded-full" />
 
       <div className="relative z-10">
         <span className="inline-flex items-center gap-1.5 text-white/60 text-xs font-semibold tracking-widest uppercase">
-          <span className="text-white/80">✦</span> TU COACH, ESTA MAÑANA
+          <span className="text-white/80">✦</span> ÚNETE A QUIENES YA CONTROLAN SUS FINANZAS
         </span>
 
-        <div className="mt-6 bg-white/10 border border-white/15 rounded-2xl p-5">
-          <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center shrink-0 mt-0.5">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-              </svg>
-            </div>
-            <p className="text-white/90 text-sm leading-relaxed">
-              "Este mes gastaste un 12% menos en comida.
-              Si mantienes el ritmo, llegas a tu meta de ahorro en 3 meses."
-            </p>
-          </div>
-        </div>
+        <h2 className="text-white text-3xl font-bold mt-6 leading-tight">
+          Toma el control<br />de tu dinero.
+        </h2>
+        <p className="text-white/70 text-sm mt-3 leading-relaxed max-w-xs">
+          Coach Financiero IA analiza cada movimiento y te da insights personalizados para que llegues a tus metas más rápido.
+        </p>
       </div>
 
-      <div className="relative z-10 flex flex-col items-center">
-        <p className="text-white/50 text-xs font-semibold uppercase tracking-wider mb-4">{title}</p>
-        <PreviewCard />
+      <div className="relative z-10 space-y-3">
+        {STATS.map(({ value, label }) => (
+          <div key={value} className="bg-white/10 border border-white/15 rounded-xl px-5 py-3.5 flex items-center gap-4">
+            <span className="text-white font-bold text-2xl">{value}</span>
+            <span className="text-white/70 text-sm">{label}</span>
+          </div>
+        ))}
       </div>
 
       <div className="relative z-10">
-        <p className="text-white/40 text-[10px] font-semibold uppercase tracking-widest mb-3">Conectado con</p>
+        <p className="text-white/40 text-[10px] font-semibold uppercase tracking-widest mb-3">Compatible con</p>
         <div className="flex items-center gap-3 flex-wrap">
           {["Mercado Pago", "PayPal", "Wise", "Galicia", "BBVA"].map((name) => (
             <span
@@ -145,7 +99,7 @@ function Toast({ msg, onHide }: { msg: string; onHide: () => void }) {
     return () => clearTimeout(t);
   }, [onHide]);
   return (
-    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-hi text-white text-sm font-medium px-5 py-3 rounded-xl shadow-lg z-50 animate-fade-in">
+    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-hi text-white text-sm font-medium px-5 py-3 rounded-xl shadow-lg z-50">
       {msg}
     </div>
   );
@@ -153,15 +107,20 @@ function Toast({ msg, onHide }: { msg: string; onHide: () => void }) {
 
 /* ── Page ────────────────────────────────────────────────────────────────── */
 
-export default function LoginPage() {
+export default function RegisterPage() {
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState("");
   const router = useRouter();
   const toastHideRef = useRef(() => setToast(""));
+
+  const strength = getStrength(password);
 
   // Redirect if already logged in
   useEffect(() => {
@@ -170,25 +129,38 @@ export default function LoginPage() {
     }
   }, [router]);
 
+  function validate() {
+    const errs: Record<string, string> = {};
+    if (!name.trim()) errs.name = "El nombre es obligatorio";
+    if (!email) errs.email = "El email es obligatorio";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errs.email = "Formato de email inválido";
+    if (!password) errs.password = "La contraseña es obligatoria";
+    else if (password.length < 8) errs.password = "Mínimo 8 caracteres";
+    if (password !== confirm) errs.confirm = "Las contraseñas no coinciden";
+    return errs;
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!email || !password) { setError("Completa todos los campos"); return; }
-    setLoading(true);
+    const errs = validate();
+    if (Object.keys(errs).length) { setFieldErrors(errs); return; }
+    setFieldErrors({});
     setError("");
+    setLoading(true);
+
     try {
-      const res = await fetch(`${API_URL}/api/auth/login`, {
+      const res = await fetch(`${API_URL}/api/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ name, email, password }),
       });
       const data = await res.json();
-      if (res.ok) {
-        localStorage.setItem("coach_token", data.token);
-        router.push("/");
-      } else if (res.status === 403 && data.waitlist) {
+      if (res.status === 201) {
         router.push("/waitlist-pending");
+      } else if (res.status === 409) {
+        setFieldErrors({ email: "Este email ya está registrado" });
       } else {
-        setError("Email o contraseña incorrectos");
+        setError(data.error ?? "Ocurrió un error. Intenta de nuevo.");
       }
     } catch {
       setError("No se pudo conectar con el servidor");
@@ -205,38 +177,60 @@ export default function LoginPage() {
       <div className="flex flex-col justify-between bg-white px-8 py-8 md:px-12 lg:px-16">
         <Logo />
 
-        {/* Form area */}
         <div className="flex-1 flex items-center justify-center py-8">
           <div className="w-full max-w-sm">
-            <p className="text-lo text-sm font-medium mb-2">{greeting()}</p>
             <h1 className="text-3xl md:text-4xl font-bold text-hi leading-tight mb-1">
-              Tus finanzas,
+              Crea tu cuenta,
             </h1>
             <h1 className="text-3xl md:text-4xl font-bold text-success leading-tight mb-4">
-              en un solo lugar.
+              es gratis.
             </h1>
             <p className="text-mid text-sm leading-relaxed mb-8">
-              Crea tu cuenta y empieza a ver el balance del mes y a charlar con tu coach IA.
+              Conecta tus finanzas y empieza a recibir insights de tu coach IA.
             </p>
 
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Name */}
+              <div>
+                <div className="relative">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-lo">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                      <circle cx="12" cy="7" r="4" />
+                    </svg>
+                  </span>
+                  <input
+                    type="text"
+                    placeholder="Nombre completo"
+                    value={name}
+                    onChange={(e) => { setName(e.target.value); setFieldErrors((p) => ({ ...p, name: "" })); }}
+                    className={`input-light w-full pl-10 py-3 ${fieldErrors.name ? "border-danger focus:border-danger" : ""}`}
+                    autoComplete="name"
+                    autoFocus
+                  />
+                </div>
+                {fieldErrors.name && <p className="text-danger text-xs mt-1">{fieldErrors.name}</p>}
+              </div>
+
               {/* Email */}
-              <div className="relative">
-                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-lo">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-                    <polyline points="22 6 12 13 2 6" />
-                  </svg>
-                </span>
-                <input
-                  type="email"
-                  placeholder="tucorreo@email.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="input-light w-full pl-10 py-3"
-                  autoComplete="email"
-                  autoFocus
-                />
+              <div>
+                <div className="relative">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-lo">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                      <polyline points="22 6 12 13 2 6" />
+                    </svg>
+                  </span>
+                  <input
+                    type="email"
+                    placeholder="tucorreo@email.com"
+                    value={email}
+                    onChange={(e) => { setEmail(e.target.value); setFieldErrors((p) => ({ ...p, email: "" })); }}
+                    className={`input-light w-full pl-10 py-3 ${fieldErrors.email ? "border-danger focus:border-danger" : ""}`}
+                    autoComplete="email"
+                  />
+                </div>
+                {fieldErrors.email && <p className="text-danger text-xs mt-1">{fieldErrors.email}</p>}
               </div>
 
               {/* Password */}
@@ -250,11 +244,11 @@ export default function LoginPage() {
                   </span>
                   <input
                     type={showPassword ? "text" : "password"}
-                    placeholder="Tu contraseña"
+                    placeholder="Contraseña (mín. 8 caracteres)"
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="input-light w-full pl-10 pr-10 py-3"
-                    autoComplete="current-password"
+                    onChange={(e) => { setPassword(e.target.value); setFieldErrors((p) => ({ ...p, password: "" })); }}
+                    className={`input-light w-full pl-10 pr-10 py-3 ${fieldErrors.password ? "border-danger focus:border-danger" : ""}`}
+                    autoComplete="new-password"
                   />
                   <button
                     type="button"
@@ -274,11 +268,49 @@ export default function LoginPage() {
                     )}
                   </button>
                 </div>
-                <div className="flex justify-end mt-1.5">
-                  <Link href="/forgot-password" className="text-xs text-teal hover:text-teal-hover font-medium transition-colors">
-                    ¿Olvidaste tu contraseña?
-                  </Link>
+
+                {/* Strength indicator */}
+                {password.length > 0 && (
+                  <div className="mt-2 space-y-1">
+                    <div className="flex gap-1">
+                      {[1, 2, 3].map((i) => (
+                        <div
+                          key={i}
+                          className={`flex-1 h-1.5 rounded-full transition-all duration-300 ${
+                            strength.level >= i ? strength.color : "bg-border"
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    <p className={`text-xs font-medium ${
+                      strength.level === 1 ? "text-danger" :
+                      strength.level === 2 ? "text-warning" : "text-success"
+                    }`}>
+                      {strength.label}
+                    </p>
+                  </div>
+                )}
+                {fieldErrors.password && <p className="text-danger text-xs mt-1">{fieldErrors.password}</p>}
+              </div>
+
+              {/* Confirm password */}
+              <div>
+                <div className="relative">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-lo">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                    </svg>
+                  </span>
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Confirmar contraseña"
+                    value={confirm}
+                    onChange={(e) => { setConfirm(e.target.value); setFieldErrors((p) => ({ ...p, confirm: "" })); }}
+                    className={`input-light w-full pl-10 py-3 ${fieldErrors.confirm ? "border-danger focus:border-danger" : ""}`}
+                    autoComplete="new-password"
+                  />
                 </div>
+                {fieldErrors.confirm && <p className="text-danger text-xs mt-1">{fieldErrors.confirm}</p>}
               </div>
 
               {error && (
@@ -295,9 +327,9 @@ export default function LoginPage() {
                 {loading ? (
                   <span className="flex items-center justify-center gap-2">
                     <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Entrando…
+                    Creando cuenta…
                   </span>
-                ) : "Empezar gratis →"}
+                ) : "Crear cuenta →"}
               </button>
 
               {/* Divider */}
@@ -321,24 +353,25 @@ export default function LoginPage() {
                 </svg>
                 Continuar con Google
               </button>
+
+              {/* Terms */}
+              <p className="text-center text-[11px] text-lo leading-relaxed">
+                Al registrarte aceptas los{" "}
+                <Link href="/terms" className="text-teal hover:underline">Términos de servicio</Link>
+                {" "}y la{" "}
+                <Link href="/privacy" className="text-teal hover:underline">Política de privacidad</Link>
+              </p>
             </form>
 
-            {/* Register link */}
             <p className="text-center text-sm text-mid mt-6">
-              ¿No tienes cuenta?{" "}
-              <Link href="/register" className="text-teal hover:text-teal-hover font-semibold transition-colors">
-                Regístrate
+              ¿Ya tienes cuenta?{" "}
+              <Link href="/login" className="text-teal hover:text-teal-hover font-semibold transition-colors">
+                Inicia sesión
               </Link>
-            </p>
-
-            {/* Security note */}
-            <p className="text-center text-[11px] text-lo mt-6">
-              🔒 Cifrado extremo a extremo · Acceso con contraseña única
             </p>
           </div>
         </div>
 
-        {/* Footer */}
         <div className="flex items-center justify-between text-[11px] text-lo">
           <span>v2.5 · Prompt 5</span>
           <div className="flex gap-3">
@@ -348,8 +381,7 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* ── Right column ────────────────────────────────────────────────── */}
-      <RightColumn title="Resumen del mes" />
+      <RightColumn />
     </div>
   );
 }

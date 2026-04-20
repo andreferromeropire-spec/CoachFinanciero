@@ -72,6 +72,8 @@ model User {
   password  String
   name      String?
   isAdmin   Boolean  @default(false)
+  // 'waitlist' | 'approved' | 'blocked'
+  status    String   @default("waitlist")
   createdAt DateTime @default(now())
 
   accounts      Account[]
