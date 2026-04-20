@@ -39,7 +39,10 @@ export default function LoginPage() {
   const [loading, setLoading]   = useState(false);
   const [focusEmail, setFE]     = useState(false);
   const [focusPass,  setFP]     = useState(false);
+  const [greet, setGreet]       = useState("Bienvenido 👋");
   const router = useRouter();
+
+  useEffect(() => { setGreet(greeting()); }, []);
 
   useEffect(() => {
     if (typeof window !== "undefined" && localStorage.getItem("coach_token")) {
@@ -192,7 +195,7 @@ export default function LoginPage() {
               background: C.tealTint, border: `1px solid ${C.tealSoft}`,
               fontSize: 12, fontWeight: 500, color: C.tealDark, marginBottom: 18,
             }}>
-              {greeting()}
+              {greet}
             </div>
 
             <h1 style={{ fontSize: 32, fontWeight: 600, letterSpacing: -0.7, lineHeight: 1.1, marginBottom: 10 }}>
