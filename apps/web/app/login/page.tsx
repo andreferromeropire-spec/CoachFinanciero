@@ -81,8 +81,9 @@ export default function LoginPage() {
 
         .lr {
           display: grid;
-          grid-template-columns: 5fr 7fr;
+          grid-template-columns: 2fr 3fr;
           min-height: 100vh;
+          width: 100%;
         }
 
         /* ── LEFT ── */
@@ -108,8 +109,8 @@ export default function LoginPage() {
           display: flex;
           flex-direction: column;
           justify-content: space-between;
-          align-items: flex-start;
-          padding: 3rem 4rem;
+          align-items: stretch;
+          padding: 3rem 4rem 2.5rem 3.5rem;
           position: relative;
           overflow: hidden;
         }
@@ -331,7 +332,7 @@ export default function LoginPage() {
         <div className="lright">
 
           {/* ── QUOTE + DASHBOARD (vertically centered) ── */}
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", position: "relative", zIndex: 1, maxWidth: 620, width: "100%" }}>
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", position: "relative", zIndex: 1, width: "100%" }}>
             {/* Quote */}
             <div style={{ marginBottom: 28 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
@@ -353,12 +354,12 @@ export default function LoginPage() {
               transform: "rotate(-0.4deg)",
             }}>
               {/* Row: income + expenses */}
-              <div style={{ display: "flex", gap: 10, marginBottom: 12 }}>
+              <div style={{ display: "flex", gap: 14, marginBottom: 14 }}>
                 {[
                   { label: "Ingresos del mes", value: "$ 284.500", pct: "+12%", color: C.green, soft: C.greenSoft, up: true },
                   { label: "Gastos del mes",   value: "$ 198.200", pct: "-8%",  color: C.rose,  soft: C.roseSoft,  up: false },
                 ].map(k => (
-                  <div key={k.label} style={{ flex: 1, padding: "12px 13px", background: C.bg, borderRadius: 10 }}>
+                  <div key={k.label} style={{ flex: 1, padding: "14px 18px", background: C.bg, borderRadius: 12 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
                       <div style={{ width: 22, height: 22, borderRadius: 7, background: k.soft, display: "flex", alignItems: "center", justifyContent: "center" }}>
                         {k.up
@@ -375,14 +376,14 @@ export default function LoginPage() {
               </div>
 
               {/* Balance */}
-              <div style={{ background: C.bg, borderRadius: 10, padding: "13px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ background: C.bg, borderRadius: 12, padding: "15px 18px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div>
                   <div style={{ fontSize: 9.5, fontWeight: 600, color: C.lo, letterSpacing: 0.5, textTransform: "uppercase" }}>Balance disponible</div>
                   <div style={{ fontSize: 22, fontWeight: 600, color: C.text, marginTop: 4, letterSpacing: -0.5 }}>$ 86.300</div>
                 </div>
-                <svg width="140" height="36" viewBox="0 0 140 36">
-                  <path d="M2 30 L22 24 L40 27 L60 18 L78 20 L98 13 L116 15 L138 6" stroke={C.teal} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M2 30 L22 24 L40 27 L60 18 L78 20 L98 13 L116 15 L138 6 L138 36 L2 36 Z" fill={C.tealSoft} opacity="0.4"/>
+                <svg style={{ flex: "0 0 180px", height: 40 }} viewBox="0 0 180 40" preserveAspectRatio="none">
+                  <path d="M2 34 L26 28 L50 31 L76 20 L100 23 L124 14 L150 17 L178 6" stroke={C.teal} strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M2 34 L26 28 L50 31 L76 20 L100 23 L124 14 L150 17 L178 6 L178 40 L2 40 Z" fill={C.tealSoft} opacity="0.38"/>
                 </svg>
               </div>
             </div>
