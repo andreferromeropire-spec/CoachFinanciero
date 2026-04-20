@@ -16,13 +16,13 @@ export default function OfflinePage() {
       <p className="text-mid text-base mb-6 max-w-sm">
         Los datos se sincronizarán automáticamente cuando vuelvas a tener internet.
       </p>
-      <button
-        onClick={() => window.location.reload()}
+      <a
+        href="/"
         className="px-6 py-3 bg-gradient-to-r from-teal to-teal-hover text-white font-semibold
                    rounded-2xl shadow-md hover:shadow-lg transition-all"
       >
         Reintentar
-      </button>
+      </a>
     </div>
   );
 }
