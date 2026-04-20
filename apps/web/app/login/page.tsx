@@ -1,169 +1,179 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 
-/* ── Helpers ─────────────────────────────────────────────────────────────── */
+// ── Design tokens (from design file) ────────────────────────────────────────
+const CF = {
+  teal:         '#14b8a6',
+  tealDark:     '#0d9488',
+  tealSoft:     '#ccfbf1',
+  tealTint:     '#f0fdfa',
+  lavenderSoft: '#ede9fe',
+  lavenderTint: '#f5f3ff',
+  rose:         '#f43f5e',
+  roseSoft:     '#ffe4e6',
+  green:        '#10b981',
+  greenSoft:    '#d1fae5',
+  bg:           '#f8fafc',
+  card:         '#ffffff',
+  border:       '#e5e7eb',
+  borderSoft:   '#eef2f6',
+  text:         '#0f172a',
+  textMuted:    '#475569',
+  textSubtle:   '#94a3b8',
+  font:         '"Inter", -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
+};
 
+// ── Helpers ──────────────────────────────────────────────────────────────────
 function greeting() {
   const h = new Date().getHours();
-  if (h < 12) return "Buenos días ☀️";
-  if (h < 19) return "Buenas tardes 🌤️";
-  return "Buenas noches 🌙";
+  if (h < 12) return "Buenos días 👋";
+  if (h < 19) return "Buenas tardes 👋";
+  return "Buenas noches 👋";
 }
 
-/* ── Sparkline SVG ───────────────────────────────────────────────────────── */
-
-function Sparkline() {
-  const points = [40, 55, 42, 68, 52, 75, 60, 80, 65, 88, 70, 95];
-  const max = Math.max(...points);
-  const min = Math.min(...points);
-  const w = 120;
-  const h = 36;
-  const xs = points.map((_, i) => (i / (points.length - 1)) * w);
-  const ys = points.map((p) => h - ((p - min) / (max - min)) * h);
-  const d = xs.map((x, i) => `${i === 0 ? "M" : "L"}${x},${ys[i]}`).join(" ");
+// ── Field component ──────────────────────────────────────────────────────────
+function Field({
+  label, placeholder, type = "text", icon, value, onChange, suffix, autoFocus,
+}: {
+  label: string; placeholder: string; type?: string; icon: React.ReactNode;
+  value: string; onChange: (v: string) => void; suffix?: React.ReactNode; autoFocus?: boolean;
+}) {
+  const [focused, setFocused] = useState(false);
   return (
-    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} fill="none">
-      <path d={d} stroke="rgba(255,255,255,0.7)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx={xs[xs.length - 1]} cy={ys[ys.length - 1]} r="3" fill="white" />
-    </svg>
-  );
-}
-
-/* ── Right panel preview card ────────────────────────────────────────────── */
-
-function PreviewCard() {
-  return (
-    <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-5 shadow-xl w-full max-w-xs">
-      <p className="text-white/60 text-xs font-semibold uppercase tracking-wider mb-4">Resumen del mes</p>
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <span className="text-white/70 text-xs">INGRESOS DEL MES</span>
-          <div className="flex items-center gap-2">
-            <span className="text-white font-bold text-sm font-mono">$ 284.500</span>
-            <span className="text-[10px] bg-emerald-400/20 text-emerald-300 border border-emerald-400/30 rounded-full px-1.5 py-0.5 font-semibold">+10%</span>
-          </div>
-        </div>
-        <div className="flex items-center justify-between">
-          <span className="text-white/70 text-xs">GASTOS DEL MES</span>
-          <div className="flex items-center gap-2">
-            <span className="text-white font-bold text-sm font-mono">$ 198.200</span>
-            <span className="text-[10px] bg-red-400/20 text-red-300 border border-red-400/30 rounded-full px-1.5 py-0.5 font-semibold">-8%</span>
-          </div>
-        </div>
-        <div className="h-px bg-white/10" />
-        <div className="flex items-center justify-between">
-          <span className="text-white/70 text-xs">BALANCE DISPONIBLE</span>
-          <span className="text-white font-bold text-base font-mono">$ 86.300</span>
-        </div>
-        <div className="pt-1">
-          <Sparkline />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ── Right column ────────────────────────────────────────────────────────── */
-
-function RightColumn({ title = "Conectado con tus finanzas" }: { title?: string }) {
-  return (
-    <div className="hidden lg:flex flex-col justify-between bg-gradient-to-br from-[#0d9488] to-[#0f766e] p-12 relative overflow-hidden">
-      {/* Background circles */}
-      <div className="absolute -top-20 -right-20 w-72 h-72 bg-white/5 rounded-full" />
-      <div className="absolute -bottom-16 -left-16 w-56 h-56 bg-white/5 rounded-full" />
-
-      <div className="relative z-10">
-        <span className="inline-flex items-center gap-1.5 text-white/60 text-xs font-semibold tracking-widest uppercase">
-          <span className="text-white/80">✦</span> TU COACH, ESTA MAÑANA
+    <div>
+      <label style={{ display: 'block', fontSize: 12.5, fontWeight: 500, color: CF.textMuted, marginBottom: 6 }}>
+        {label}
+      </label>
+      <div style={{ position: 'relative' }}>
+        <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: CF.textSubtle, display: 'flex', pointerEvents: 'none' }}>
+          {icon}
         </span>
-
-        <div className="mt-6 bg-white/10 border border-white/15 rounded-2xl p-5">
-          <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center shrink-0 mt-0.5">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-              </svg>
-            </div>
-            <p className="text-white/90 text-sm leading-relaxed">
-              "Este mes gastaste un 12% menos en comida.
-              Si mantienes el ritmo, llegas a tu meta de ahorro en 3 meses."
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div className="relative z-10 flex flex-col items-center">
-        <p className="text-white/50 text-xs font-semibold uppercase tracking-wider mb-4">{title}</p>
-        <PreviewCard />
-      </div>
-
-      <div className="relative z-10">
-        <p className="text-white/40 text-[10px] font-semibold uppercase tracking-widest mb-3">Conectado con</p>
-        <div className="flex items-center gap-3 flex-wrap">
-          {["Mercado Pago", "PayPal", "Wise", "Galicia", "BBVA"].map((name) => (
-            <span
-              key={name}
-              className="bg-white/10 border border-white/15 text-white/70 text-[11px] font-medium rounded-lg px-2.5 py-1"
-            >
-              {name}
-            </span>
-          ))}
-        </div>
+        <input
+          type={type}
+          placeholder={placeholder}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          autoFocus={autoFocus}
+          style={{
+            width: '100%', padding: '11px 12px 11px 38px',
+            background: CF.card, border: `1.5px solid ${focused ? CF.teal : CF.border}`,
+            borderRadius: 10, fontSize: 14, color: CF.text, outline: 'none',
+            fontFamily: CF.font, boxSizing: 'border-box',
+            boxShadow: focused ? `0 0 0 3px ${CF.teal}1a` : 'none',
+            transition: 'border-color 0.15s, box-shadow 0.15s',
+          }}
+        />
+        {suffix && (
+          <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)' }}>
+            {suffix}
+          </span>
+        )}
       </div>
     </div>
   );
 }
 
-/* ── Logo ────────────────────────────────────────────────────────────────── */
+// ── Icons ─────────────────────────────────────────────────────────────────────
+const IconMail = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+    <polyline points="22 6 12 13 2 6"/>
+  </svg>
+);
+const IconLock = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+  </svg>
+);
+const IconGoogle = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24">
+    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09Z"/>
+    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23Z"/>
+    <path fill="#FBBC05" d="M5.84 14.1c-.22-.66-.35-1.36-.35-2.1s.13-1.44.35-2.1V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.83Z"/>
+    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53Z"/>
+  </svg>
+);
 
-function Logo() {
+// ── MiniDashboard ─────────────────────────────────────────────────────────────
+function MiniDashboard() {
+  const sparkD = "M2 24 L14 20 L26 22 L38 14 L50 16 L62 10 L74 12 L88 4";
   return (
-    <div className="flex items-center gap-2.5">
-      <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-teal to-teal-hover flex items-center justify-center shadow-sm">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+    <div style={{
+      background: CF.card, border: `1px solid ${CF.borderSoft}`, borderRadius: 16, padding: 20,
+      boxShadow: '0 20px 60px -20px rgba(15,23,42,0.15), 0 4px 16px rgba(15,23,42,0.04)',
+      maxWidth: 520, transform: 'rotate(-0.5deg)',
+    }}>
+      <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
+        {/* Income */}
+        <div style={{ flex: 1, padding: '12px 14px', background: CF.bg, borderRadius: 10 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+            <div style={{ width: 22, height: 22, borderRadius: 7, background: CF.greenSoft, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M5 15l7-7 7 7" stroke={CF.green} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            </div>
+            <span style={{ fontSize: 10.5, fontWeight: 600, color: CF.green, padding: '2px 6px', background: CF.greenSoft, borderRadius: 4 }}>+12%</span>
+          </div>
+          <div style={{ fontSize: 9.5, fontWeight: 600, color: CF.textSubtle, letterSpacing: 0.4, textTransform: 'uppercase' }}>Ingresos del mes</div>
+          <div style={{ fontSize: 17, fontWeight: 600, color: CF.text, marginTop: 2, letterSpacing: -0.3 }}>$ 284.500</div>
+        </div>
+        {/* Expenses */}
+        <div style={{ flex: 1, padding: '12px 14px', background: CF.bg, borderRadius: 10 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+            <div style={{ width: 22, height: 22, borderRadius: 7, background: CF.roseSoft, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M19 9l-7 7-7-7" stroke={CF.rose} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            </div>
+            <span style={{ fontSize: 10.5, fontWeight: 600, color: CF.rose, padding: '2px 6px', background: CF.roseSoft, borderRadius: 4 }}>-8%</span>
+          </div>
+          <div style={{ fontSize: 9.5, fontWeight: 600, color: CF.textSubtle, letterSpacing: 0.4, textTransform: 'uppercase' }}>Gastos del mes</div>
+          <div style={{ fontSize: 17, fontWeight: 600, color: CF.text, marginTop: 2, letterSpacing: -0.3 }}>$ 198.200</div>
+        </div>
+      </div>
+      {/* Balance + sparkline */}
+      <div style={{ background: CF.bg, borderRadius: 10, padding: '14px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <div style={{ fontSize: 10.5, fontWeight: 600, color: CF.textSubtle, letterSpacing: 0.4, textTransform: 'uppercase' }}>Balance disponible</div>
+          <div style={{ fontSize: 22, fontWeight: 600, color: CF.text, marginTop: 4, letterSpacing: -0.5 }}>$ 86.300</div>
+        </div>
+        <svg width="90" height="32" viewBox="0 0 90 32">
+          <path d={sparkD} stroke={CF.teal} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d={`${sparkD} L88 32 L2 32 Z`} fill={CF.tealSoft} opacity="0.5"/>
         </svg>
       </div>
-      <div className="leading-tight">
-        <p className="text-hi font-bold text-sm">Coach Financiero</p>
-        <p className="text-lo text-[10px] font-medium">IA Personal Finance</p>
-      </div>
     </div>
   );
 }
 
-/* ── Toast ───────────────────────────────────────────────────────────────── */
-
+// ── Toast ─────────────────────────────────────────────────────────────────────
 function Toast({ msg, onHide }: { msg: string; onHide: () => void }) {
-  useEffect(() => {
-    const t = setTimeout(onHide, 3000);
-    return () => clearTimeout(t);
-  }, [onHide]);
+  useEffect(() => { const t = setTimeout(onHide, 2800); return () => clearTimeout(t); }, [onHide]);
   return (
-    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-hi text-white text-sm font-medium px-5 py-3 rounded-xl shadow-lg z-50 animate-fade-in">
+    <div style={{
+      position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)',
+      background: CF.text, color: '#fff', fontSize: 13, fontWeight: 500,
+      padding: '10px 20px', borderRadius: 10, zIndex: 100, whiteSpace: 'nowrap',
+      boxShadow: '0 8px 24px rgba(0,0,0,0.15)', fontFamily: CF.font,
+    }}>
       {msg}
     </div>
   );
 }
 
-/* ── Page ────────────────────────────────────────────────────────────────── */
-
+// ── Page ──────────────────────────────────────────────────────────────────────
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
+  const [email, setEmail]       = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [toast, setToast] = useState("");
+  const [error, setError]       = useState("");
+  const [loading, setLoading]   = useState(false);
+  const [toast, setToast]       = useState("");
   const router = useRouter();
-  const toastHideRef = useRef(() => setToast(""));
 
-  // Redirect if already logged in
   useEffect(() => {
     if (typeof window !== "undefined" && localStorage.getItem("coach_token")) {
       router.replace("/");
@@ -173,12 +183,10 @@ export default function LoginPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!email || !password) { setError("Completa todos los campos"); return; }
-    setLoading(true);
-    setError("");
+    setLoading(true); setError("");
     try {
-      const res = await fetch(`${API_URL}/api/auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const res  = await fetch(`${API_URL}/api/auth/login`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
       const data = await res.json();
@@ -197,159 +205,285 @@ export default function LoginPage() {
     }
   }
 
+  const s = { fontFamily: CF.font, color: CF.text };
+
   return (
-    <div className="min-h-screen grid lg:grid-cols-2">
-      {toast && <Toast msg={toast} onHide={toastHideRef.current} />}
+    <div style={{ minHeight: '100vh', display: 'flex', ...s }}>
+      {toast && <Toast msg={toast} onHide={() => setToast("")} />}
 
-      {/* ── Left column ─────────────────────────────────────────────────── */}
-      <div className="flex flex-col justify-between bg-white px-8 py-8 md:px-12 lg:px-16">
-        <Logo />
-
-        {/* Form area */}
-        <div className="flex-1 flex items-center justify-center py-8">
-          <div className="w-full max-w-sm">
-            <p className="text-lo text-sm font-medium mb-2">{greeting()}</p>
-            <h1 className="text-3xl md:text-4xl font-bold text-hi leading-tight mb-1">
-              Tus finanzas,
-            </h1>
-            <h1 className="text-3xl md:text-4xl font-bold text-success leading-tight mb-4">
-              en un solo lugar.
-            </h1>
-            <p className="text-mid text-sm leading-relaxed mb-8">
-              Crea tu cuenta y empieza a ver el balance del mes y a charlar con tu coach IA.
-            </p>
-
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Email */}
-              <div className="relative">
-                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-lo">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-                    <polyline points="22 6 12 13 2 6" />
-                  </svg>
-                </span>
-                <input
-                  type="email"
-                  placeholder="tucorreo@email.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="input-light w-full pl-10 py-3"
-                  autoComplete="email"
-                  autoFocus
-                />
-              </div>
-
-              {/* Password */}
-              <div>
-                <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-lo">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                    </svg>
-                  </span>
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    placeholder="Tu contraseña"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="input-light w-full pl-10 pr-10 py-3"
-                    autoComplete="current-password"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-lo hover:text-mid transition-colors"
-                  >
-                    {showPassword ? (
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
-                        <line x1="1" y1="1" x2="23" y2="23" />
-                      </svg>
-                    ) : (
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                        <circle cx="12" cy="12" r="3" />
-                      </svg>
-                    )}
-                  </button>
-                </div>
-                <div className="flex justify-end mt-1.5">
-                  <Link href="/forgot-password" className="text-xs text-teal hover:text-teal-hover font-medium transition-colors">
-                    ¿Olvidaste tu contraseña?
-                  </Link>
-                </div>
-              </div>
-
-              {error && (
-                <p className="text-danger text-sm bg-danger/8 border border-danger/20 rounded-xl px-4 py-2.5">
-                  {error}
-                </p>
-              )}
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full btn-primary py-3 text-base disabled:opacity-50 disabled:transform-none disabled:shadow-none disabled:cursor-not-allowed"
-              >
-                {loading ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Entrando…
-                  </span>
-                ) : "Empezar gratis →"}
-              </button>
-
-              {/* Divider */}
-              <div className="flex items-center gap-3 py-1">
-                <div className="flex-1 h-px bg-border" />
-                <span className="text-lo text-[11px] font-semibold tracking-wider">O CONTINUAR CON</span>
-                <div className="flex-1 h-px bg-border" />
-              </div>
-
-              {/* Google button */}
-              <button
-                type="button"
-                onClick={() => setToast("Google OAuth — próximamente disponible")}
-                className="w-full flex items-center justify-center gap-3 border border-border bg-white hover:bg-raised rounded-xl py-3 text-hi text-sm font-semibold transition-all shadow-sm hover:shadow-md"
-              >
-                <svg width="18" height="18" viewBox="0 0 48 48">
-                  <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v8.51h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.14z"/>
-                  <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.16C6.51 42.62 14.62 48 24 48z"/>
-                  <path fill="#FBBC05" d="M10.53 28.59c-.5-1.45-.78-3-.78-4.59s.28-3.14.78-4.59l-7.98-6.16C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
-                  <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.16C12.43 13.72 17.74 9.5 24 9.5z"/>
-                </svg>
-                Continuar con Google
-              </button>
-            </form>
-
-            {/* Register link */}
-            <p className="text-center text-sm text-mid mt-6">
-              ¿No tienes cuenta?{" "}
-              <Link href="/register" className="text-teal hover:text-teal-hover font-semibold transition-colors">
-                Regístrate
-              </Link>
-            </p>
-
-            {/* Security note */}
-            <p className="text-center text-[11px] text-lo mt-6">
-              🔒 Cifrado extremo a extremo · Acceso con contraseña única
-            </p>
+      {/* ── LEFT: form ──────────────────────────────────────────────────── */}
+      <div style={{
+        width: 'min(540px, 100%)', padding: '44px 56px', display: 'flex',
+        flexDirection: 'column', background: CF.card, boxSizing: 'border-box',
+      }}
+        className="login-left"
+      >
+        {/* Logo */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 0 }}>
+          <div style={{
+            width: 34, height: 34, borderRadius: 10,
+            background: `linear-gradient(135deg, ${CF.teal}, ${CF.tealDark})`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: `0 4px 12px ${CF.teal}44`,
+          }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+            </svg>
+          </div>
+          <div>
+            <div style={{ fontSize: 13.5, fontWeight: 700, color: CF.text, lineHeight: 1.1 }}>Coach Financiero</div>
+            <div style={{ fontSize: 10.5, color: CF.textSubtle, fontWeight: 500 }}>IA Personal Finance</div>
           </div>
         </div>
 
+        {/* Form area — vertically centered */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', maxWidth: 380 }}>
+          {/* Greeting pill */}
+          <div style={{
+            display: 'inline-flex', alignSelf: 'flex-start', alignItems: 'center', gap: 7,
+            padding: '5px 11px 5px 10px', borderRadius: 999,
+            background: CF.tealTint, border: `1px solid ${CF.tealSoft}`,
+            fontSize: 12, fontWeight: 500, color: CF.tealDark, marginBottom: 20,
+          }}>
+            {greeting()}
+          </div>
+
+          <h1 style={{
+            fontSize: 36, fontWeight: 600, letterSpacing: -0.9, lineHeight: 1.05,
+            margin: 0, marginBottom: 10,
+          }}>
+            Tus finanzas,<br/>
+            <span style={{ color: CF.tealDark }}>en un solo lugar.</span>
+          </h1>
+          <p style={{ fontSize: 15, color: CF.textMuted, margin: '0 0 34px', lineHeight: 1.55 }}>
+            Crea tu cuenta y empieza a ver el balance del mes y a charlar con tu coach IA.
+          </p>
+
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column' }}>
+            <Field
+              label="Correo electrónico"
+              placeholder="tu@ejemplo.com"
+              icon={<IconMail />}
+              value={email}
+              onChange={setEmail}
+              autoFocus
+            />
+            <div style={{ height: 14 }}/>
+            <Field
+              label="Contraseña"
+              placeholder="••••••••"
+              type="password"
+              icon={<IconLock />}
+              value={password}
+              onChange={setPassword}
+              suffix={
+                <Link href="/forgot-password" style={{ fontSize: 12, color: CF.tealDark, fontWeight: 500, textDecoration: 'none' }}>
+                  ¿Olvidaste?
+                </Link>
+              }
+            />
+
+            {error && (
+              <div style={{
+                marginTop: 12, padding: '10px 14px', background: '#fff1f2',
+                border: '1px solid #fecdd3', borderRadius: 8,
+                fontSize: 13, color: '#e11d48',
+              }}>
+                {error}
+              </div>
+            )}
+
+            {/* Primary CTA */}
+            <button
+              type="submit"
+              disabled={loading}
+              style={{
+                marginTop: 24, padding: '13px 18px',
+                background: loading ? `${CF.teal}99` : CF.teal,
+                color: '#fff', border: 'none', borderRadius: 11,
+                fontSize: 14.5, fontWeight: 600, fontFamily: CF.font, cursor: loading ? 'not-allowed' : 'pointer',
+                boxShadow: `0 1px 2px rgba(13,148,136,0.3), 0 8px 20px -4px ${CF.teal}66, inset 0 1px 0 rgba(255,255,255,0.2)`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                transition: 'opacity 0.15s',
+              }}
+            >
+              {loading ? (
+                <>
+                  <span style={{
+                    width: 14, height: 14, border: '2px solid rgba(255,255,255,0.3)',
+                    borderTopColor: '#fff', borderRadius: '50%',
+                    animation: 'spin 0.7s linear infinite', display: 'inline-block',
+                  }}/>
+                  Entrando…
+                </>
+              ) : (
+                <>
+                  Empezar gratis
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                    <path d="M5 12h14m0 0-6-6m6 6-6 6" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </>
+              )}
+            </button>
+
+            {/* Divider */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '18px 0 14px' }}>
+              <div style={{ flex: 1, height: 1, background: CF.borderSoft }}/>
+              <span style={{ fontSize: 11.5, color: CF.textSubtle, letterSpacing: 0.5, textTransform: 'uppercase', fontWeight: 500 }}>
+                o continuar con
+              </span>
+              <div style={{ flex: 1, height: 1, background: CF.borderSoft }}/>
+            </div>
+
+            {/* Google */}
+            <button
+              type="button"
+              onClick={() => setToast("Google OAuth — próximamente disponible")}
+              style={{
+                width: '100%', padding: '12px 18px',
+                background: CF.card, color: CF.text,
+                border: `1.5px solid ${CF.border}`, borderRadius: 11,
+                fontSize: 14, fontWeight: 500, fontFamily: CF.font, cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+              }}
+            >
+              <IconGoogle />
+              Continuar con Google
+            </button>
+          </form>
+
+          {/* Security note */}
+          <div style={{ marginTop: 18, fontSize: 12.5, color: CF.textSubtle, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+              <path d="M12 2 4 6v6c0 5 3.5 9 8 10 4.5-1 8-5 8-10V6l-8-4Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/>
+              <path d="m9 12 2 2 4-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            Cifrado extremo a extremo · Acceso con contraseña única
+          </div>
+
+          {/* Register link */}
+          <p style={{ marginTop: 20, fontSize: 13.5, color: CF.textMuted, textAlign: 'center' }}>
+            ¿No tienes cuenta?{" "}
+            <Link href="/register" style={{ color: CF.tealDark, fontWeight: 600, textDecoration: 'none' }}>
+              Regístrate
+            </Link>
+          </p>
+        </div>
+
         {/* Footer */}
-        <div className="flex items-center justify-between text-[11px] text-lo">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12.5, color: CF.textSubtle }}>
           <span>v2.5 · Prompt 5</span>
-          <div className="flex gap-3">
-            <Link href="/terms" className="hover:text-mid transition-colors">Términos</Link>
-            <Link href="/privacy" className="hover:text-mid transition-colors">Privacidad</Link>
+          <div style={{ display: 'flex', gap: 12 }}>
+            <Link href="/terms" style={{ color: CF.textMuted, textDecoration: 'none' }}>Términos</Link>
+            <Link href="/privacy" style={{ color: CF.textMuted, textDecoration: 'none' }}>Privacidad</Link>
           </div>
         </div>
       </div>
 
-      {/* ── Right column ────────────────────────────────────────────────── */}
-      <RightColumn title="Resumen del mes" />
+      {/* ── RIGHT: preview panel ─────────────────────────────────────────── */}
+      <div
+        className="login-right"
+        style={{
+          flex: 1, background: `linear-gradient(160deg, ${CF.tealTint} 0%, ${CF.lavenderTint} 100%)`,
+          position: 'relative', overflow: 'hidden', padding: 48,
+          display: 'flex', flexDirection: 'column', justifyContent: 'center',
+        }}
+      >
+        {/* Decorative blurred circles */}
+        <div style={{
+          position: 'absolute', top: -120, right: -120, width: 380, height: 380,
+          borderRadius: '50%', background: CF.tealSoft, opacity: 0.55, filter: 'blur(30px)',
+          pointerEvents: 'none',
+        }}/>
+        <div style={{
+          position: 'absolute', bottom: -80, left: 80, width: 260, height: 260,
+          borderRadius: '50%', background: CF.lavenderSoft, opacity: 0.5, filter: 'blur(40px)',
+          pointerEvents: 'none',
+        }}/>
+
+        {/* Coach quote */}
+        <div style={{ position: 'relative', marginBottom: 28, maxWidth: 520 }}>
+          <div style={{
+            fontSize: 13, fontWeight: 500, color: CF.tealDark, letterSpacing: 0.4,
+            textTransform: 'uppercase', marginBottom: 14,
+            display: 'flex', alignItems: 'center', gap: 8,
+          }}>
+            <span style={{
+              width: 6, height: 6, borderRadius: '50%', background: CF.teal,
+              boxShadow: `0 0 0 4px ${CF.tealSoft}`,
+              display: 'inline-block', flexShrink: 0,
+            }}/>
+            Tu coach, esta mañana
+          </div>
+          <div style={{ fontSize: 26, fontWeight: 500, color: CF.text, letterSpacing: -0.5, lineHeight: 1.25 }}>
+            "Este mes gastaste un 12% menos en comida.
+            Si mantienes el ritmo, llegas a tu meta de ahorro en{" "}
+            <span style={{ color: CF.tealDark, fontWeight: 600 }}>3 meses</span>."
+          </div>
+        </div>
+
+        {/* Mini dashboard */}
+        <div style={{ position: 'relative', marginBottom: 40 }}>
+          <MiniDashboard />
+        </div>
+
+        {/* Integration chips */}
+        <div style={{
+          position: 'absolute', bottom: 36, left: 48, right: 48,
+          display: 'flex', alignItems: 'center', gap: 14, fontSize: 11.5,
+          color: CF.textMuted, fontWeight: 500, letterSpacing: 0.3, textTransform: 'uppercase',
+          flexWrap: 'wrap',
+        }}>
+          <span>Conectado con</span>
+          {["Mercado Pago", "PayPal", "Wise", "Galicia", "BBVA"].map((name) => (
+            <span key={name} style={{
+              padding: '5px 10px', background: 'rgba(255,255,255,0.7)',
+              border: `1px solid ${CF.borderSoft}`, borderRadius: 6,
+              fontSize: 11, fontWeight: 500, color: CF.textMuted,
+              textTransform: 'none', letterSpacing: 0,
+              backdropFilter: 'blur(8px)',
+            }}>
+              {name}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @media (max-width: 767px) {
+          .login-right { display: none !important; }
+          .login-left {
+            width: 100% !important;
+            padding: 40px 28px !important;
+            min-height: 100vh;
+            background: linear-gradient(180deg, ${CF.tealTint} 0%, #fff 40%) !important;
+            position: relative;
+          }
+          .login-left::before {
+            content: '';
+            position: absolute;
+            top: -60px; right: -80px;
+            width: 260px; height: 260px;
+            border-radius: 50%;
+            background: ${CF.tealSoft};
+            filter: blur(50px);
+            opacity: 0.7;
+            pointer-events: none;
+          }
+          .login-left::after {
+            content: '';
+            position: absolute;
+            top: 180px; left: -80px;
+            width: 220px; height: 220px;
+            border-radius: 50%;
+            background: ${CF.lavenderSoft};
+            filter: blur(60px);
+            opacity: 0.5;
+            pointer-events: none;
+          }
+        }
+      `}</style>
     </div>
   );
 }
