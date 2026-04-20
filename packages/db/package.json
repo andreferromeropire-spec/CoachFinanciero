@@ -1,8 +1,10 @@
 {
   "name": "@coach/db",
   "version": "1.0.0",
-  "main": "./src/index.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "scripts": {
+    "build": "prisma generate && tsc",
     "generate": "prisma generate",
     "migrate": "prisma migrate dev",
     "studio": "prisma studio",
