@@ -18,8 +18,21 @@ import { startDailyCron } from "./jobs/dailyAlerts";
 const app = express();
 const PORT = process.env.PORT || 4000;
 
+const allowedOrigins = [
+  process.env.PUBLIC_WEB_URL,
+  "https://coachfinanciero.pages.dev",
+  "http://localhost:3000",
+  "http://192.168.1.4:3000",
+].filter(Boolean) as string[];
+
 app.use(cors({
-  origin: [process.env.PUBLIC_WEB_URL, "http://localhost:3000"].filter(Boolean) as string[],
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
   credentials: true,
 }));
 
