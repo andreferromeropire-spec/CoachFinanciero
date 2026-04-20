@@ -3,5 +3,5 @@ builder = "nixpacks"
 buildCommand = "npm install && cd packages/db && npx prisma generate && npx tsc && cd ../../apps/api && npm run build"
 
 [deploy]
-startCommand = "npx prisma db execute --file=scripts/fix-migration.sql --schema=packages/db/prisma/schema.prisma 2>/dev/null || true && npx prisma migrate deploy --schema=packages/db/prisma/schema.prisma && node apps/api/dist/index.js"
+startCommand = "npx prisma migrate deploy --schema=packages/db/prisma/schema.prisma && node apps/api/dist/index.js"
 healthcheckPath = "/api/health"
