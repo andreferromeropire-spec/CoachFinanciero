@@ -1,7 +1,0 @@
-[build]
-builder = "nixpacks"
-buildCommand = "cd ../../packages/db && npx prisma generate && npx tsc && cd ../../apps/api && npm run build"
-
-[deploy]
-startCommand = "npm run start"
-healthcheckPath = "/api/health"
