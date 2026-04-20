@@ -197,47 +197,48 @@ export default function LoginPage() {
   return (
     <>
       <style>{`
-        html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
+        html, body { margin: 0; padding: 0; }
         @keyframes spin { to { transform: rotate(360deg); } }
 
+        /* ── ROOT: 50/50 grid, full viewport ── */
         .login-root {
-          display: flex;
-          height: 100vh;
-          width: 100vw;
-          overflow: hidden;
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          min-height: 100vh;
+          width: 100%;
           font-family: ${CF.font};
           color: ${CF.text};
         }
 
         /* ── LEFT ── */
         .login-left {
-          width: 480px;
-          flex-shrink: 0;
           background: ${CF.card};
           display: flex;
           flex-direction: column;
-          padding: 36px 52px;
-          overflow-y: auto;
+          justify-content: center;
+          min-height: 100vh;
+          padding: 3rem 4rem;
           box-sizing: border-box;
+          overflow-y: auto;
         }
         .login-form-area {
-          flex: 1;
           display: flex;
           flex-direction: column;
-          justify-content: center;
-          max-width: 360px;
+          max-width: 400px;
+          width: 100%;
         }
 
         /* ── RIGHT ── */
         .login-right {
-          flex: 1;
           background: linear-gradient(160deg, ${CF.tealTint} 0%, ${CF.lavenderTint} 100%);
           display: flex;
           flex-direction: column;
-          justify-content: center;
-          padding: 52px 52px 80px;
+          justify-content: space-between;
+          min-height: 100vh;
+          padding: 3rem;
           position: relative;
           overflow: hidden;
+          box-sizing: border-box;
         }
         .login-right-deco1 {
           position: absolute; top: -100px; right: -100px;
@@ -254,19 +255,18 @@ export default function LoginPage() {
 
         /* ── TABLET (768-1024px) ── */
         @media (max-width: 1024px) and (min-width: 768px) {
-          .login-left  { width: 420px; padding: 32px 40px; }
-          .login-right { padding: 44px 40px 36px; }
+          .login-left  { padding: 2.5rem 3rem; }
+          .login-right { padding: 2.5rem; }
         }
 
         /* ── MOBILE (<768px) ── */
         @media (max-width: 767px) {
-          html, body { overflow: auto; }
-          .login-root  { height: auto; min-height: 100vh; flex-direction: column; }
+          .login-root  { grid-template-columns: 1fr; }
           .login-left  {
-            width: 100%; flex-shrink: unset;
-            padding: 44px 28px 36px;
+            min-height: 100vh;
+            padding: 3rem 1.75rem;
             background: linear-gradient(180deg, ${CF.tealTint} 0%, #fff 38%);
-            position: relative; overflow: visible;
+            position: relative;
           }
           .login-left::before {
             content: '';
@@ -458,9 +458,8 @@ export default function LoginPage() {
             <MiniDashboard/>
           </div>
 
-          {/* Chips — pinned to bottom */}
+          {/* Chips — bottom flex child for space-between distribution */}
           <div style={{
-            position: 'absolute', bottom: 36, left: 52, right: 52,
             display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' as const,
           }}>
             <span style={{ fontSize: 11, fontWeight: 600, color: CF.textMuted, letterSpacing: 0.5, textTransform: 'uppercase' as const, marginRight: 4 }}>
