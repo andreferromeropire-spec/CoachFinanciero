@@ -27,7 +27,12 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) {
+    if (!origin) { callback(null, true); return; }
+    // Acepta dominio exacto o cualquier subdominio de pages.dev (previews de Cloudflare)
+    const isAllowed =
+      allowedOrigins.includes(origin) ||
+      /^https:\/\/[a-z0-9-]+\.pages\.dev$/.test(origin);
+    if (isAllowed) {
       callback(null, true);
     } else {
       callback(new Error("Not allowed by CORS"));

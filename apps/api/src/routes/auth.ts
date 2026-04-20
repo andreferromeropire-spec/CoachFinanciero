@@ -14,30 +14,36 @@ authRouter.post("/login", async (req: Request, res: Response) => {
     return;
   }
 
-  const user = await prisma.user.findUnique({ where: { email } });
-  if (!user) {
-    res.status(401).json({ error: "Invalid credentials" });
-    return;
-  }
+  try {
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      res.status(401).json({ error: "Invalid credentials" });
+      return;
+    }
 
-  const valid = await bcrypt.compare(password, user.password);
-  if (!valid) {
-    res.status(401).json({ error: "Invalid credentials" });
-    return;
-  }
+    const valid = await bcrypt.compare(password, user.password);
+    if (!valid) {
+      res.status(401).json({ error: "Invalid credentials" });
+      return;
+    }
 
-  if (user.status === "waitlist") {
-    res.status(403).json({ error: "Account pending approval", waitlist: true });
-    return;
-  }
+    const status = (user as { status?: string }).status;
+    if (status === "waitlist") {
+      res.status(403).json({ error: "Account pending approval", waitlist: true });
+      return;
+    }
 
-  if (user.status === "blocked") {
-    res.status(403).json({ error: "Account blocked" });
-    return;
-  }
+    if (status === "blocked") {
+      res.status(403).json({ error: "Account blocked" });
+      return;
+    }
 
-  const token = createToken(user.id);
-  res.json({ token, user: { id: user.id, email: user.email, name: user.name, isAdmin: user.isAdmin } });
+    const token = createToken(user.id);
+    res.json({ token, user: { id: user.id, email: user.email, name: user.name, isAdmin: user.isAdmin } });
+  } catch (err) {
+    console.error("[auth/login]", err);
+    res.status(500).json({ error: "Server error, please try again" });
+  }
 });
 
 // POST /api/auth/register
@@ -62,26 +68,26 @@ authRouter.post("/register", async (req: Request, res: Response) => {
     return;
   }
 
-  const existing = await prisma.user.findUnique({ where: { email } });
-  if (existing) {
-    res.status(409).json({ error: "Email already registered" });
-    return;
+  try {
+    const existing = await prisma.user.findUnique({ where: { email } });
+    if (existing) {
+      res.status(409).json({ error: "Email already registered" });
+      return;
+    }
+
+    const hash = await bcrypt.hash(password, 12);
+
+    const user = await prisma.user.create({
+      data: { name, email, password: hash },
+    });
+
+    await prisma.userSettings.create({ data: { userId: user.id } });
+
+    res.status(201).json({ message: "Registration successful, pending approval" });
+  } catch (err) {
+    console.error("[auth/register]", err);
+    res.status(500).json({ error: "Server error, please try again" });
   }
-
-  const hash = await bcrypt.hash(password, 12);
-
-  const user = await prisma.user.create({
-    data: {
-      name,
-      email,
-      password: hash,
-      status: "waitlist",
-    },
-  });
-
-  await prisma.userSettings.create({ data: { userId: user.id } });
-
-  res.status(201).json({ message: "Registration successful, pending approval" });
 });
 
 // GET /api/auth/me

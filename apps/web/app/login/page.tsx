@@ -57,15 +57,22 @@ export default function LoginPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
-      const data = await res.json();
-      if (res.ok) {
+      let data: { token?: string; error?: string; waitlist?: boolean } = {};
+      try { data = await res.json(); } catch { /* respuesta no-JSON del servidor */ }
+      if (res.ok && data.token) {
         localStorage.setItem("coach_token", data.token);
         router.push("/");
+      } else if (res.status === 403 && data.waitlist) {
+        setError("Tu cuenta está pendiente de aprobación");
+      } else if (res.status === 403) {
+        setError("Tu cuenta está bloqueada");
+      } else if (res.status === 500) {
+        setError("Error del servidor. Por favor intentá de nuevo en unos segundos");
       } else {
         setError("Email o contraseña incorrectos");
       }
     } catch {
-      setError("No se pudo conectar con el servidor");
+      setError(`No se pudo conectar con el servidor (${API_URL})`);
     } finally {
       setLoading(false);
     }
