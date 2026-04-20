@@ -76,65 +76,78 @@ export default function LoginPage() {
       <style>{`
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         html, body { height: 100%; font-family: ${C.font}; }
-
         @keyframes spin { to { transform: rotate(360deg); } }
 
+        /* ── ROOT: left fixed, right flex-1 ── */
         .lr {
-          display: grid;
-          grid-template-columns: 2fr 3fr;
-          min-height: 100vh;
-          width: 100%;
+          display: flex;
+          width: 100vw;
+          height: 100vh;
+          overflow: hidden;
         }
 
-        /* ── LEFT ── */
+        /* ── LEFT: ancho fijo, nunca cambia ── */
         .ll {
+          width: 420px;
+          min-width: 420px;
+          max-width: 420px;
           background: ${C.white};
           display: flex;
           flex-direction: column;
-          align-items: center;
           justify-content: space-between;
-          padding: 3rem 2.5rem;
+          padding: 2.75rem 2.5rem;
+          overflow-y: auto;
         }
         .ll-inner {
           width: 100%;
-          max-width: 380px;
           display: flex;
           flex-direction: column;
-          gap: 0;
         }
 
-        /* ── RIGHT ── */
+        /* ── RIGHT: absorbe todo el espacio sobrante ── */
         .lright {
+          flex: 1;
+          min-width: 0;
           background: linear-gradient(155deg, ${C.tealTint} 0%, #f5f3ff 100%);
           display: flex;
-          flex-direction: column;
-          justify-content: space-between;
-          align-items: stretch;
-          padding: 3rem 4rem 2.5rem 3.5rem;
+          align-items: center;
+          justify-content: center;
           position: relative;
           overflow: hidden;
+          padding: 3rem;
         }
         .lright::before {
           content: "";
           position: absolute; top: -120px; right: -120px;
-          width: 380px; height: 380px; border-radius: 50%;
-          background: ${C.tealSoft}; opacity: 0.55; filter: blur(35px);
+          width: 400px; height: 400px; border-radius: 50%;
+          background: ${C.tealSoft}; opacity: 0.55; filter: blur(40px);
           pointer-events: none;
         }
         .lright::after {
           content: "";
           position: absolute; bottom: -80px; left: 40px;
-          width: 260px; height: 260px; border-radius: 50%;
-          background: ${C.lavender}; opacity: 0.4; filter: blur(45px);
+          width: 280px; height: 280px; border-radius: 50%;
+          background: ${C.lavender}; opacity: 0.4; filter: blur(50px);
           pointer-events: none;
+        }
+
+        /* ── INNER del panel derecho: max-width para no estirarse ── */
+        .lright-inner {
+          width: 100%;
+          max-width: 520px;
+          display: flex;
+          flex-direction: column;
+          gap: 0;
+          position: relative;
+          z-index: 1;
         }
 
         input { font-family: ${C.font}; }
 
         @media (max-width: 768px) {
-          .lr { grid-template-columns: 1fr; }
+          .lr { flex-direction: column; height: auto; min-height: 100vh; overflow: auto; }
+          .ll { width: 100%; min-width: 0; max-width: 100%; height: auto; padding: 2.5rem 1.5rem; }
           .lright { display: none; }
-          .ll { padding: 2.5rem 1.5rem; }
         }
       `}</style>
 
@@ -330,36 +343,35 @@ export default function LoginPage() {
 
         {/* ═══════════════════ RIGHT ═══════════════════ */}
         <div className="lright">
+          <div className="lright-inner">
 
-          {/* ── QUOTE + DASHBOARD (vertically centered) ── */}
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", position: "relative", zIndex: 1, width: "100%" }}>
             {/* Quote */}
-            <div style={{ marginBottom: 28 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+            <div style={{ marginBottom: 24 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
                 <span style={{ width: 7, height: 7, borderRadius: "50%", background: C.teal, boxShadow: `0 0 0 4px ${C.tealSoft}`, display: "inline-block", flexShrink: 0 }}/>
-                <span style={{ fontSize: 11.5, fontWeight: 700, color: C.tealDark, letterSpacing: 0.8, textTransform: "uppercase" }}>Tu coach, esta mañana</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: C.tealDark, letterSpacing: 0.8, textTransform: "uppercase" as const }}>Tu coach, esta mañana</span>
               </div>
-              <p style={{ fontSize: 24, fontWeight: 500, color: C.text, letterSpacing: -0.4, lineHeight: 1.3 }}>
+              <p style={{ fontSize: 22, fontWeight: 500, color: C.text, letterSpacing: -0.4, lineHeight: 1.35 }}>
                 "Este mes gastaste un 12% menos en comida.
                 Si mantienes el ritmo, llegas a tu meta de ahorro en{" "}
                 <span style={{ color: C.tealDark, fontWeight: 700 }}>3 meses</span>."
               </p>
             </div>
 
-            {/* Mini dashboard card */}
+            {/* Dashboard card */}
             <div style={{
               background: C.white, border: `1px solid ${C.borderFt}`, borderRadius: 18,
-              padding: "22px 26px", width: "100%",
-              boxShadow: "0 24px 60px -16px rgba(15,23,42,0.14), 0 4px 16px rgba(15,23,42,0.04)",
+              padding: "20px 22px",
+              boxShadow: "0 20px 50px -14px rgba(15,23,42,0.13), 0 4px 14px rgba(15,23,42,0.04)",
               transform: "rotate(-0.4deg)",
             }}>
-              {/* Row: income + expenses */}
-              <div style={{ display: "flex", gap: 14, marginBottom: 14 }}>
+              {/* Ingresos + Gastos */}
+              <div style={{ display: "flex", gap: 12, marginBottom: 12 }}>
                 {[
                   { label: "Ingresos del mes", value: "$ 284.500", pct: "+12%", color: C.green, soft: C.greenSoft, up: true },
                   { label: "Gastos del mes",   value: "$ 198.200", pct: "-8%",  color: C.rose,  soft: C.roseSoft,  up: false },
                 ].map(k => (
-                  <div key={k.label} style={{ flex: 1, padding: "14px 18px", background: C.bg, borderRadius: 12 }}>
+                  <div key={k.label} style={{ flex: 1, padding: "13px 15px", background: C.bg, borderRadius: 11 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
                       <div style={{ width: 22, height: 22, borderRadius: 7, background: k.soft, display: "flex", alignItems: "center", justifyContent: "center" }}>
                         {k.up
@@ -369,40 +381,40 @@ export default function LoginPage() {
                       </div>
                       <span style={{ fontSize: 10, fontWeight: 700, color: k.color, padding: "2px 6px", background: k.soft, borderRadius: 4 }}>{k.pct}</span>
                     </div>
-                    <div style={{ fontSize: 9.5, fontWeight: 600, color: C.lo, letterSpacing: 0.5, textTransform: "uppercase" }}>{k.label}</div>
+                    <div style={{ fontSize: 9.5, fontWeight: 600, color: C.lo, letterSpacing: 0.5, textTransform: "uppercase" as const }}>{k.label}</div>
                     <div style={{ fontSize: 17, fontWeight: 600, color: C.text, marginTop: 3, letterSpacing: -0.3 }}>{k.value}</div>
                   </div>
                 ))}
               </div>
 
               {/* Balance */}
-              <div style={{ background: C.bg, borderRadius: 12, padding: "15px 18px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ background: C.bg, borderRadius: 11, padding: "13px 15px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div>
-                  <div style={{ fontSize: 9.5, fontWeight: 600, color: C.lo, letterSpacing: 0.5, textTransform: "uppercase" }}>Balance disponible</div>
-                  <div style={{ fontSize: 22, fontWeight: 600, color: C.text, marginTop: 4, letterSpacing: -0.5 }}>$ 86.300</div>
+                  <div style={{ fontSize: 9.5, fontWeight: 600, color: C.lo, letterSpacing: 0.5, textTransform: "uppercase" as const }}>Balance disponible</div>
+                  <div style={{ fontSize: 21, fontWeight: 600, color: C.text, marginTop: 3, letterSpacing: -0.5 }}>$ 86.300</div>
                 </div>
-                <svg style={{ flex: "0 0 180px", height: 40 }} viewBox="0 0 180 40" preserveAspectRatio="none">
-                  <path d="M2 34 L26 28 L50 31 L76 20 L100 23 L124 14 L150 17 L178 6" stroke={C.teal} strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M2 34 L26 28 L50 31 L76 20 L100 23 L124 14 L150 17 L178 6 L178 40 L2 40 Z" fill={C.tealSoft} opacity="0.38"/>
+                <svg width="130" height="36" viewBox="0 0 130 36">
+                  <path d="M2 30 L18 24 L34 27 L52 17 L68 19 L86 12 L104 14 L128 5" stroke={C.teal} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M2 30 L18 24 L34 27 L52 17 L68 19 L86 12 L104 14 L128 5 L128 36 L2 36 Z" fill={C.tealSoft} opacity="0.38"/>
                 </svg>
               </div>
             </div>
-          </div>
 
-          {/* Chips — pinned to bottom */}
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", position: "relative", zIndex: 1 }}>
-            <span style={{ fontSize: 10.5, fontWeight: 700, color: C.mid, letterSpacing: 0.6, textTransform: "uppercase", marginRight: 2 }}>Conectado con</span>
-            {["Mercado Pago", "PayPal", "Wise", "Galicia", "BBVA"].map(name => (
-              <span key={name} style={{
-                padding: "5px 10px", background: "rgba(255,255,255,0.72)",
-                border: `1px solid ${C.borderFt}`, borderRadius: 6,
-                fontSize: 11, fontWeight: 500, color: C.mid,
-              }}>
-                {name}
-              </span>
-            ))}
-          </div>
+            {/* Chips */}
+            <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" as const, marginTop: 20 }}>
+              <span style={{ fontSize: 10.5, fontWeight: 700, color: C.mid, letterSpacing: 0.6, textTransform: "uppercase" as const, marginRight: 2 }}>Conectado con</span>
+              {["Mercado Pago", "PayPal", "Wise", "Galicia", "BBVA"].map(name => (
+                <span key={name} style={{
+                  padding: "5px 10px", background: "rgba(255,255,255,0.75)",
+                  border: `1px solid ${C.borderFt}`, borderRadius: 6,
+                  fontSize: 11, fontWeight: 500, color: C.mid,
+                }}>
+                  {name}
+                </span>
+              ))}
+            </div>
 
+          </div>
         </div>{/* end RIGHT */}
 
       </div>
