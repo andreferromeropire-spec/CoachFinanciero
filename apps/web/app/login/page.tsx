@@ -234,8 +234,8 @@ export default function LoginPage() {
           background: linear-gradient(160deg, ${CF.tealTint} 0%, ${CF.lavenderTint} 100%);
           display: flex;
           flex-direction: column;
-          justify-content: space-between;
-          padding: 52px 52px 40px;
+          justify-content: center;
+          padding: 52px 52px 80px;
           position: relative;
           overflow: hidden;
         }
@@ -432,34 +432,38 @@ export default function LoginPage() {
           <div className="login-right-deco1"/>
           <div className="login-right-deco2"/>
 
-          {/* TOP: Coach quote */}
-          <div style={{ position: 'relative', maxWidth: 560 }}>
-            <div style={{
-              fontSize: 12.5, fontWeight: 600, color: CF.tealDark, letterSpacing: 0.6,
-              textTransform: 'uppercase', marginBottom: 16,
-              display: 'flex', alignItems: 'center', gap: 8,
-            }}>
-              <span style={{
-                width: 6, height: 6, borderRadius: '50%', background: CF.teal,
-                boxShadow: `0 0 0 4px ${CF.tealSoft}`, display: 'inline-block', flexShrink: 0,
-              }}/>
-              Tu coach, esta mañana
+          {/* Centered content: quote + dashboard */}
+          <div style={{ position: 'relative', maxWidth: 520, width: '100%' }}>
+            {/* Coach quote */}
+            <div style={{ marginBottom: 28 }}>
+              <div style={{
+                fontSize: 12.5, fontWeight: 600, color: CF.tealDark, letterSpacing: 0.6,
+                textTransform: 'uppercase' as const, marginBottom: 14,
+                display: 'flex', alignItems: 'center', gap: 8,
+              }}>
+                <span style={{
+                  width: 6, height: 6, borderRadius: '50%', background: CF.teal,
+                  boxShadow: `0 0 0 4px ${CF.tealSoft}`, display: 'inline-block', flexShrink: 0,
+                }}/>
+                Tu coach, esta mañana
+              </div>
+              <div style={{ fontSize: 26, fontWeight: 500, color: CF.text, letterSpacing: -0.5, lineHeight: 1.25 }}>
+                "Este mes gastaste un 12% menos en comida.
+                Si mantienes el ritmo, llegas a tu meta de ahorro en{" "}
+                <span style={{ color: CF.tealDark, fontWeight: 600 }}>3 meses</span>."
+              </div>
             </div>
-            <div style={{ fontSize: 27, fontWeight: 500, color: CF.text, letterSpacing: -0.5, lineHeight: 1.3 }}>
-              "Este mes gastaste un 12% menos en comida.
-              Si mantienes el ritmo, llegas a tu meta de ahorro en{" "}
-              <span style={{ color: CF.tealDark, fontWeight: 600 }}>3 meses</span>."
-            </div>
-          </div>
 
-          {/* MIDDLE: Mini dashboard */}
-          <div style={{ position: 'relative' }}>
+            {/* Mini dashboard */}
             <MiniDashboard/>
           </div>
 
-          {/* BOTTOM: Integrations */}
-          <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 11, fontWeight: 600, color: CF.textMuted, letterSpacing: 0.5, textTransform: 'uppercase', marginRight: 4 }}>
+          {/* Chips — pinned to bottom */}
+          <div style={{
+            position: 'absolute', bottom: 36, left: 52, right: 52,
+            display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' as const,
+          }}>
+            <span style={{ fontSize: 11, fontWeight: 600, color: CF.textMuted, letterSpacing: 0.5, textTransform: 'uppercase' as const, marginRight: 4 }}>
               Conectado con
             </span>
             {["Mercado Pago", "PayPal", "Wise", "Galicia", "BBVA"].map(name => (
