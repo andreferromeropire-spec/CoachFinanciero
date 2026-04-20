@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import useSWR from "swr";
 import Link from "next/link";
 import {
@@ -9,6 +10,7 @@ import { fetcher } from "../lib/api";
 import { formatCurrency, formatDate } from "../lib/format";
 import { StatCard } from "./components/StatCard";
 import { BudgetBar } from "./components/BudgetBar";
+import { OnboardingWizard } from "./components/onboarding/OnboardingWizard";
 
 /* ── Types ─────────────────────────────────────────────────────────────────── */
 
@@ -87,11 +89,23 @@ interface SharedPending {
   totalPending: number;
 }
 
+interface Settings { onboardingCompleted: boolean }
+
 export default function DashboardPage() {
   const { data: summary, isLoading: loadingSum } = useSWR<Summary>("/api/budget/summary", fetcher);
   const { data: txData }     = useSWR<{ data: Tx[] }>("/api/transactions?page=1", fetcher);
   const { data: budgetStatus } = useSWR<BudgetStatus[]>("/api/budget/categories/status", fetcher);
   const { data: sharedPending } = useSWR<SharedPending>("/api/transactions/shared/pending", fetcher);
+  const { data: settings, mutate: mutateSettings } = useSWR<Settings>("/api/settings", fetcher);
+
+  const [showWizard, setShowWizard] = useState(false);
+
+  // Show wizard automatically on first load when onboarding not completed
+  useEffect(() => {
+    if (settings && !settings.onboardingCompleted) {
+      setShowWizard(true);
+    }
+  }, [settings]);
 
   const transactions = txData?.data?.slice(0, 10) ?? [];
 
@@ -107,6 +121,35 @@ export default function DashboardPage() {
 
   return (
     <div className="px-4 py-6 md:p-8 max-w-[1200px] mx-auto">
+
+      {/* ── Onboarding wizard ───────────────────────────────────────────────── */}
+      {showWizard && (
+        <OnboardingWizard
+          onClose={() => {
+            setShowWizard(false);
+            mutateSettings();
+          }}
+        />
+      )}
+
+      {/* ── Onboarding banner (dismissed but not completed) ─────────────────── */}
+      {settings && !settings.onboardingCompleted && !showWizard && (
+        <div className="mb-5 card px-5 py-4 flex items-center justify-between gap-4 border-l-4 border-l-teal bg-teal/3">
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">🚀</span>
+            <div>
+              <p className="font-bold text-hi text-sm">Configurá tu cuenta en 5 minutos</p>
+              <p className="text-xs text-mid mt-0.5">Conectá Gmail, importá historial bancario y activá tus webhooks.</p>
+            </div>
+          </div>
+          <button
+            onClick={() => setShowWizard(true)}
+            className="text-xs font-semibold text-teal border border-teal/30 bg-teal/8 hover:bg-teal/15 px-3 py-1.5 rounded-xl transition-colors shrink-0"
+          >
+            Configurar →
+          </button>
+        </div>
+      )}
 
       {/* ── Page header ─────────────────────────────────────────────────────── */}
       <header className="mb-6 md:mb-8 flex items-center justify-between gap-3">

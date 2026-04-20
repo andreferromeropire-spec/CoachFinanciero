@@ -174,17 +174,24 @@ model EmailIngest {
 // ── UserSettings ──────────────────────────────────────────────────────────────
 
 model UserSettings {
-  id                    String   @id @default(cuid())
-  userId                String   @default("default-user")
-  user                  User     @relation(fields: [userId], references: [id])
-  monthlyIncomeAvg      Decimal? @db.Decimal(15, 2)
-  savingsGoalPercent    Float?
-  maxInstallmentPercent Float?
-  sonnetCallsThisMonth  Int      @default(0)
-  sonnetCallsLimit      Int      @default(20)
-  haikusCallsThisMonth  Int      @default(0)
-  sonnetResetMonth      Int?
-  updatedAt             DateTime @updatedAt
+  id                      String   @id @default(cuid())
+  userId                  String   @default("default-user")
+  user                    User     @relation(fields: [userId], references: [id])
+  monthlyIncomeAvg        Decimal? @db.Decimal(15, 2)
+  savingsGoalPercent      Float?
+  maxInstallmentPercent   Float?
+  sonnetCallsThisMonth    Int      @default(0)
+  sonnetCallsLimit        Int      @default(20)
+  haikusCallsThisMonth    Int      @default(0)
+  sonnetResetMonth        Int?
+  onboardingCompleted     Boolean  @default(false)
+  gmailConnected          Boolean  @default(false)
+  gmailAccessToken        String?
+  gmailRefreshToken       String?
+  webhookMpConfigured     Boolean  @default(false)
+  webhookPaypalConfigured Boolean  @default(false)
+  webhookWiseConfigured   Boolean  @default(false)
+  updatedAt               DateTime @updatedAt
 }
 
 // ── Conversation ──────────────────────────────────────────────────────────────
