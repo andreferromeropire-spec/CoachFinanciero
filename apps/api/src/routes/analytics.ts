@@ -103,20 +103,18 @@ analyticsRouter.get("/yearly", async (req: Request, res: Response) => {
     _min: { date: true },
   });
 
-  let years: number[];
-  if (!oldest._min.date) {
-    years = [currentYear - 2, currentYear - 1, currentYear];
-  } else {
-    // Año del movimiento más viejo que tengas
+  // Siempre el mismo criterio de pestañas: al menos 15 años hacia atrás desde hoy, y si hay datos más
+  // viejos se incluyen. Así Historia no queda en solo 3 años cuando todavía no hay movimientos en la DB.
+  let minY = currentYear - 15;
+  if (oldest._min.date) {
     const dataMinY = new Date(oldest._min.date).getFullYear();
-    // Pestañas: bajar como mínimo 15 años desde hoy aunque el primer dato sea reciente (ej. importaste
-    // mails viejos pero el parser dejó la fecha en 2024 — igual podés abrir 2021 y ver si hay algo).
-    let minY = Math.min(dataMinY, currentYear - 15);
-    const maxSpan = 40;
-    if (currentYear - minY > maxSpan - 1) minY = currentYear - (maxSpan - 1);
-    years = [];
-    for (let y = minY; y <= currentYear; y++) years.push(y);
+    minY = Math.min(dataMinY, minY);
   }
+  const maxSpan = 40;
+  if (currentYear - minY > maxSpan - 1) minY = currentYear - (maxSpan - 1);
+
+  const years: number[] = [];
+  for (let y = minY; y <= currentYear; y++) years.push(y);
 
   const results = [];
 

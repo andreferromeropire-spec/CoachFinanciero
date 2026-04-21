@@ -123,7 +123,8 @@ export default function HistoryPage() {
       {/* ── Year tabs (todos los años con datos, desde la API) ───────────────── */}
       <div className="mb-2">
         <p className="text-xs text-mid mb-2">
-          Elegí el año: incluye todo el historial que tengas cargado (importaciones desde 2021, CSV, etc.).
+          Elegí el año: las pestañas cubren varios años hacia atrás. Los gráficos solo muestran lo que ya está como
+          <strong className="text-hi"> movimientos</strong> en Transacciones (import Gmail, CSV, etc.).
         </p>
         <div className="flex flex-wrap gap-2 mb-6 max-h-36 overflow-y-auto pr-1">
           {yearTabs.map((y) => (
