@@ -67,6 +67,15 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
+    const gmailErrMsg: Record<string, string> = {
+      cancelado: "Conexión cancelada en Google.",
+      token: "Google no aceptó el intercambio de token. Revisá Client ID, Secret y las dos redirect URIs en Google Cloud y en Railway.",
+      sin_email: "Google no devolvió el email de la cuenta.",
+      error: "Error al guardar la cuenta. Probá de nuevo.",
+      oauth_no_configurado: "En Railway faltan GOOGLE_CLIENT_ID o GOOGLE_CLIENT_SECRET en el servicio API.",
+      falta_redirect_uri:
+        "En Railway, GOOGLE_REDIRECT_URI debe ser la del login (termina en /api/auth/google/callback). En Google Console agregá también la de Gmail (/api/auth/google/gmail/callback). Opcional: variable GOOGLE_GMAIL_REDIRECT_URI con esa segunda URL.",
+    };
     const params = new URLSearchParams(window.location.search);
     const connected = params.get("gmail_connected");
     const err       = params.get("gmail_error");
@@ -75,7 +84,7 @@ export default function SettingsPage() {
       mutateEmails();
       window.history.replaceState({}, "", "/settings");
     } else if (err) {
-      setGmailToast(`⚠️ Error: ${err}`);
+      setGmailToast(`⚠️ ${gmailErrMsg[err] ?? `Error: ${err}`}`);
       window.history.replaceState({}, "", "/settings");
     }
   }, [mutateEmails]);

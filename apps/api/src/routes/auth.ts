@@ -10,6 +10,33 @@ const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET ?? "";
 const GOOGLE_REDIRECT_URI  = process.env.GOOGLE_REDIRECT_URI  ?? "http://localhost:4000/api/auth/google/callback";
 const FRONTEND_URL         = process.env.PUBLIC_WEB_URL       ?? "http://localhost:3000";
 
+/**
+ * Callback OAuth de Gmail. Preferí definir GOOGLE_REDIRECT_URI como el de login
+ * (.../api/auth/google/callback) y dejar que se derive el de Gmail; o bien
+ * GOOGLE_GMAIL_REDIRECT_URI con la URL completa en Google Cloud Console.
+ * No usar .replace("/callback") suelto: rompe si la URI ya contiene /gmail/callback.
+ */
+function resolveGmailRedirectUri(): string {
+  const explicit = (process.env.GOOGLE_GMAIL_REDIRECT_URI ?? "").trim().replace(/\/+$/, "");
+  if (explicit) return explicit;
+
+  const login = (process.env.GOOGLE_REDIRECT_URI ?? "").trim().replace(/\/+$/, "");
+  if (!login) return "";
+
+  if (login.endsWith("/api/auth/google/gmail/callback")) {
+    return login;
+  }
+  if (login.endsWith("/api/auth/google/callback")) {
+    return login.replace(/\/api\/auth\/google\/callback$/, "/api/auth/google/gmail/callback");
+  }
+
+  console.warn(
+    "[auth] GOOGLE_REDIRECT_URI debe terminar en /api/auth/google/callback (login). Valor recibido (truncado):",
+    login.slice(0, 120),
+  );
+  return "";
+}
+
 // POST /api/auth/login
 authRouter.post("/login", async (req: Request, res: Response) => {
   const { email, password } = req.body as { email?: string; password?: string };
@@ -98,12 +125,16 @@ authRouter.post("/register", async (req: Request, res: Response) => {
 
 // GET /api/auth/google/gmail — OAuth con scope gmail.readonly (con JWT en state)
 authRouter.get("/google/gmail", (req: Request, res: Response) => {
-  if (!GOOGLE_CLIENT_ID) {
-    res.status(501).json({ error: "Google OAuth not configured" });
+  const gmailRedirectUri = resolveGmailRedirectUri();
+  if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
+    res.redirect(`${FRONTEND_URL}/settings?gmail_error=oauth_no_configurado`);
+    return;
+  }
+  if (!gmailRedirectUri) {
+    res.redirect(`${FRONTEND_URL}/settings?gmail_error=falta_redirect_uri`);
     return;
   }
   const token = req.headers.authorization?.slice(7) ?? (req.query.token as string) ?? "";
-  const gmailRedirectUri = (process.env.GOOGLE_REDIRECT_URI ?? "").replace("/callback", "/gmail/callback");
   const params = new URLSearchParams({
     client_id:     GOOGLE_CLIENT_ID,
     redirect_uri:  gmailRedirectUri,
@@ -135,7 +166,11 @@ authRouter.get("/google/gmail/callback", async (req: Request, res: Response) => 
   } catch { /* usa default-user */ }
 
   try {
-    const gmailRedirectUri = (process.env.GOOGLE_REDIRECT_URI ?? "").replace("/callback", "/gmail/callback");
+    const gmailRedirectUri = resolveGmailRedirectUri();
+    if (!gmailRedirectUri) {
+      res.redirect(`${FRONTEND_URL}/settings?gmail_error=falta_redirect_uri`);
+      return;
+    }
 
     // Intercambiar code por tokens
     const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
