@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import useSWR from "swr";
 import {
   BarChart, Bar, LineChart, Line, AreaChart, Area,
@@ -75,11 +75,21 @@ function TrendChip({ trend, change }: { trend: "up"|"down"|"stable"; change: num
 export default function HistoryPage() {
   const currentYear = new Date().getFullYear();
   const [selectedYear, setSelectedYear] = useState(currentYear);
-  const years = [currentYear - 2, currentYear - 1, currentYear];
+
+  const { data: yearlyData } = useSWR<YearData[]>("/api/analytics/yearly", fetcher);
+  const yearTabs =
+    yearlyData && yearlyData.length > 0
+      ? [...new Set(yearlyData.map((y) => y.year))].sort((a, b) => a - b)
+      : [currentYear - 2, currentYear - 1, currentYear];
 
   const { data: monthlyData, isLoading: loadingMonthly } = useSWR<MonthData[]>(`/api/analytics/monthly?year=${selectedYear}`, fetcher);
-  const { data: yearlyData } = useSWR<YearData[]>("/api/analytics/yearly", fetcher);
   const { data: trends } = useSWR<TrendsData>("/api/analytics/trends", fetcher);
+
+  useEffect(() => {
+    if (!yearlyData?.length) return;
+    const ys = [...new Set(yearlyData.map((y) => y.year))].sort((a, b) => a - b);
+    if (!ys.includes(selectedYear)) setSelectedYear(ys[ys.length - 1]);
+  }, [yearlyData, selectedYear]);
 
   const selectedYearData = yearlyData?.find((y) => y.year === selectedYear);
 
@@ -110,21 +120,27 @@ export default function HistoryPage() {
         <p className="text-mid text-xs md:text-sm mt-1">Evolución de tus ingresos, gastos y ahorros en el tiempo</p>
       </header>
 
-      {/* ── Year tabs ─────────────────────────────────────────────────────────── */}
-      <div className="flex gap-2 mb-6">
-        {years.map((y) => (
-          <button
-            key={y}
-            onClick={() => setSelectedYear(y)}
-            className={`px-5 py-2 rounded-xl text-sm font-bold transition-all border ${
-              selectedYear === y
-                ? "bg-teal text-white border-teal shadow-sm"
-                : "bg-white text-mid border-border hover:border-teal/40 hover:text-teal"
-            }`}
-          >
-            {y}
-          </button>
-        ))}
+      {/* ── Year tabs (todos los años con datos, desde la API) ───────────────── */}
+      <div className="mb-2">
+        <p className="text-xs text-mid mb-2">
+          Elegí el año: incluye todo el historial que tengas cargado (importaciones desde 2021, CSV, etc.).
+        </p>
+        <div className="flex flex-wrap gap-2 mb-6 max-h-36 overflow-y-auto pr-1">
+          {yearTabs.map((y) => (
+            <button
+              key={y}
+              type="button"
+              onClick={() => setSelectedYear(y)}
+              className={`px-4 py-2 rounded-xl text-sm font-bold transition-all border shrink-0 ${
+                selectedYear === y
+                  ? "bg-teal text-white border-teal shadow-sm"
+                  : "bg-white text-mid border-border hover:border-teal/40 hover:text-teal"
+              }`}
+            >
+              {y}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* ── Annual summary cards ──────────────────────────────────────────────── */}

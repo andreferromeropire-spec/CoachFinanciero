@@ -97,7 +97,22 @@ analyticsRouter.get("/monthly", async (req: Request, res: Response) => {
 analyticsRouter.get("/yearly", async (req: Request, res: Response) => {
   const userId = (req as AuthRequest).userId ?? "default-user";
   const currentYear = new Date().getFullYear();
-  const years = [currentYear - 2, currentYear - 1, currentYear];
+
+  const oldest = await prisma.transaction.aggregate({
+    where: { userId, isDuplicate: false },
+    _min: { date: true },
+  });
+
+  let years: number[];
+  if (!oldest._min.date) {
+    years = [currentYear - 2, currentYear - 1, currentYear];
+  } else {
+    let minY = new Date(oldest._min.date).getFullYear();
+    const maxSpan = 35;
+    if (currentYear - minY > maxSpan - 1) minY = currentYear - (maxSpan - 1);
+    years = [];
+    for (let y = minY; y <= currentYear; y++) years.push(y);
+  }
 
   const results = [];
 
@@ -139,7 +154,13 @@ analyticsRouter.get("/yearly", async (req: Request, res: Response) => {
 analyticsRouter.get("/trends", async (req: Request, res: Response) => {
   const userId = (req as AuthRequest).userId ?? "default-user";
   const now = new Date();
-  const since = new Date(now.getFullYear() - 2, now.getMonth(), 1);
+  const oldest = await prisma.transaction.aggregate({
+    where: { userId, isDuplicate: false },
+    _min: { date: true },
+  });
+  const minDate = oldest._min.date ? new Date(oldest._min.date) : new Date(now.getFullYear() - 2, now.getMonth(), 1);
+  const capOld = new Date(now.getFullYear() - 15, 0, 1);
+  const since = minDate < capOld ? capOld : minDate;
 
   const txs = await prisma.transaction.findMany({
     where: { userId, isDuplicate: false, date: { gte: since } },
