@@ -96,6 +96,108 @@ authRouter.post("/register", async (req: Request, res: Response) => {
   }
 });
 
+// GET /api/auth/google/gmail — OAuth con scope gmail.readonly (con JWT en state)
+authRouter.get("/google/gmail", (req: Request, res: Response) => {
+  if (!GOOGLE_CLIENT_ID) {
+    res.status(501).json({ error: "Google OAuth not configured" });
+    return;
+  }
+  const token = req.headers.authorization?.slice(7) ?? (req.query.token as string) ?? "";
+  const gmailRedirectUri = (process.env.GOOGLE_REDIRECT_URI ?? "").replace("/callback", "/gmail/callback");
+  const params = new URLSearchParams({
+    client_id:     GOOGLE_CLIENT_ID,
+    redirect_uri:  gmailRedirectUri,
+    response_type: "code",
+    scope:         "openid email https://www.googleapis.com/auth/gmail.readonly",
+    access_type:   "offline",
+    prompt:        "consent",
+    state:         encodeURIComponent(token),
+  });
+  res.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params}`);
+});
+
+// GET /api/auth/google/gmail/callback
+authRouter.get("/google/gmail/callback", async (req: Request, res: Response) => {
+  const { code, state, error } = req.query as { code?: string; state?: string; error?: string };
+  const jwtToken = state ? decodeURIComponent(state) : "";
+
+  if (error || !code) {
+    res.redirect(`${FRONTEND_URL}/settings?gmail_error=cancelado`);
+    return;
+  }
+
+  // Decodificar JWT para obtener userId
+  let userId = "default-user";
+  try {
+    const jwt = await import("jsonwebtoken");
+    const payload = jwt.default.verify(jwtToken, process.env.JWT_SECRET ?? "coach-financiero-dev-secret") as { userId: string };
+    userId = payload.userId;
+  } catch { /* usa default-user */ }
+
+  try {
+    const gmailRedirectUri = (process.env.GOOGLE_REDIRECT_URI ?? "").replace("/callback", "/gmail/callback");
+
+    // Intercambiar code por tokens
+    const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        code,
+        client_id:     GOOGLE_CLIENT_ID,
+        client_secret: GOOGLE_CLIENT_SECRET,
+        redirect_uri:  gmailRedirectUri,
+        grant_type:    "authorization_code",
+      }),
+    });
+    const tokenData = await tokenRes.json() as {
+      access_token?: string; refresh_token?: string; expires_in?: number;
+    };
+
+    if (!tokenData.access_token) {
+      res.redirect(`${FRONTEND_URL}/settings?gmail_error=token`);
+      return;
+    }
+
+    // Obtener email de la cuenta Gmail
+    const infoRes = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
+      headers: { Authorization: `Bearer ${tokenData.access_token}` },
+    });
+    const info = await infoRes.json() as { email?: string };
+
+    if (!info.email) {
+      res.redirect(`${FRONTEND_URL}/settings?gmail_error=sin_email`);
+      return;
+    }
+
+    const expiresAt = tokenData.expires_in
+      ? new Date(Date.now() + tokenData.expires_in * 1000)
+      : undefined;
+
+    // Guardar o actualizar la cuenta conectada
+    await prisma.connectedEmail.upsert({
+      where:  { userId_email: { userId, email: info.email } },
+      update: {
+        accessToken: tokenData.access_token,
+        ...(tokenData.refresh_token && { refreshToken: tokenData.refresh_token }),
+        expiresAt,
+      },
+      create: {
+        userId,
+        email:        info.email,
+        provider:     "google",
+        accessToken:  tokenData.access_token,
+        refreshToken: tokenData.refresh_token,
+        expiresAt,
+      },
+    });
+
+    res.redirect(`${FRONTEND_URL}/settings?gmail_connected=${encodeURIComponent(info.email)}`);
+  } catch (err) {
+    console.error("[auth/google/gmail/callback]", err);
+    res.redirect(`${FRONTEND_URL}/settings?gmail_error=error`);
+  }
+});
+
 // GET /api/auth/google — inicia el flujo OAuth
 authRouter.get("/google", (_req: Request, res: Response) => {
   if (!GOOGLE_CLIENT_ID) {

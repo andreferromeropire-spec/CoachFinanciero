@@ -77,13 +77,14 @@ model User {
   status    String   @default("waitlist")
   createdAt DateTime @default(now())
 
-  accounts      Account[]
-  transactions  Transaction[]
-  budgets       Budget[]
-  conversations Conversation[]
-  notifications Notification[]
-  emailIngests  EmailIngest[]
-  settings      UserSettings[]
+  accounts        Account[]
+  transactions    Transaction[]
+  budgets         Budget[]
+  conversations   Conversation[]
+  notifications   Notification[]
+  emailIngests    EmailIngest[]
+  settings        UserSettings[]
+  connectedEmails ConnectedEmail[]
 }
 
 // ── Account ───────────────────────────────────────────────────────────────────
@@ -172,6 +173,24 @@ model EmailIngest {
   rawBody       String
   status        EmailIngestStatus @default(PENDING)
   createdAt     DateTime          @default(now())
+}
+
+// ── ConnectedEmail ────────────────────────────────────────────────────────────
+// Una fila por cuenta Gmail conectada; soporta múltiples por usuario
+
+model ConnectedEmail {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id])
+  email         String
+  provider      String    @default("google")
+  accessToken   String
+  refreshToken  String?
+  expiresAt     DateTime?
+  lastImportAt  DateTime?
+  createdAt     DateTime  @default(now())
+
+  @@unique([userId, email])
 }
 
 // ── UserSettings ──────────────────────────────────────────────────────────────

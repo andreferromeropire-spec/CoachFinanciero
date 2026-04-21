@@ -51,21 +51,98 @@ export default function SettingsPage() {
   const [creatingAccount, setCreatingAccount] = useState(false);
   const [editBalance, setEditBalance] = useState<Record<string, string>>({});
 
-  // IMAP import state
-  const [imapSince, setImapSince] = useState(() => {
-    const d = new Date();
-    d.setFullYear(d.getFullYear() - 1);
+  const abortRef = useRef<(() => void) | null>(null);
+
+  // Gmail connected accounts
+  interface ConnectedEmail { id: string; email: string; lastImportAt: string | null; createdAt: string; }
+  const { data: connectedEmails, mutate: mutateEmails } = useSWR<ConnectedEmail[]>("/api/emails", fetcher);
+  const [importingSince, setImportingSince] = useState(() => {
+    const d = new Date(); d.setMonth(d.getMonth() - 3);
     return d.toISOString().slice(0, 10);
   });
+  const [importingId, setImportingId]   = useState<string | null>(null);
+  const [importLog, setImportLog]       = useState<Record<string, string>>({});
+  const [importResult, setImportResult] = useState<Record<string, { imported: number; duplicates: number; errors: number }>>({});
+  const [gmailToast, setGmailToast]     = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const connected = params.get("gmail_connected");
+    const err       = params.get("gmail_error");
+    if (connected) {
+      setGmailToast(`✅ ${decodeURIComponent(connected)} conectado`);
+      mutateEmails();
+      window.history.replaceState({}, "", "/settings");
+    } else if (err) {
+      setGmailToast(`⚠️ Error: ${err}`);
+      window.history.replaceState({}, "", "/settings");
+    }
+  }, [mutateEmails]);
+
+  function handleConnectGmail() {
+    const token = typeof window !== "undefined" ? localStorage.getItem("coach_token") ?? "" : "";
+    window.location.href = `${API_URL}/api/auth/google/gmail?token=${encodeURIComponent(token)}`;
+  }
+
+  async function handleDisconnect(id: string) {
+    if (!confirm("¿Desconectar esta cuenta de Gmail?")) return;
+    await apiFetch(`/api/emails/${id}`, { method: "DELETE" });
+    mutateEmails();
+  }
+
+  async function handleGmailImport(accountId: string) {
+    setImportingId(accountId);
+    setImportLog(prev => ({ ...prev, [accountId]: "Iniciando importación…" }));
+    setImportResult(prev => { const n = { ...prev }; delete n[accountId]; return n; });
+
+    const token = typeof window !== "undefined" ? localStorage.getItem("coach_token") ?? "" : "";
+    try {
+      const resp = await fetch(`${API_URL}/api/emails/${accountId}/import`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ since: importingSince, maxEmails: 200 }),
+      });
+      const reader = resp.body?.getReader();
+      if (!reader) throw new Error("No stream");
+      abortRef.current = () => reader.cancel();
+      const dec = new TextDecoder();
+      let buf = "";
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += dec.decode(value, { stream: true });
+        const lines = buf.split("\n");
+        buf = lines.pop() ?? "";
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          try {
+            const data = JSON.parse(line.slice(6));
+            if (data.type === "progress") {
+              setImportLog(prev => ({ ...prev, [accountId]: data.message }));
+            } else if (data.type === "done") {
+              setImportResult(prev => ({ ...prev, [accountId]: data }));
+              mutateEmails();
+            } else if (data.type === "error") {
+              setImportLog(prev => ({ ...prev, [accountId]: `⚠️ ${data.message}` }));
+            }
+          } catch { /* skip */ }
+        }
+      }
+    } catch (e) {
+      setImportLog(prev => ({ ...prev, [accountId]: `Error: ${String(e)}` }));
+    } finally {
+      setImportingId(null);
+    }
+  }
+
+  // IMAP legacy — kept for backward compat
   const [imapImporting, setImapImporting] = useState(false);
-  const [imapProgress, setImapProgress] = useState<{ processed: number; total: number; percent: number } | null>(null);
   const [imapResult, setImapResult] = useState<{ imported: number; duplicates: number; errors: number; total: number } | null>(null);
   const [imapError, setImapError] = useState<string | null>(null);
-  const abortRef = useRef<(() => void) | null>(null);
 
   async function handleImapImport() {
     setImapImporting(true);
-    setImapProgress(null);
     setImapResult(null);
     setImapError(null);
 
@@ -73,7 +150,7 @@ export default function SettingsPage() {
       const resp = await fetch(`${API_URL}/api/ingest/imap/history`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ since: imapSince }),
+        body: JSON.stringify({ since: importingSince }),
       });
 
       const reader = resp.body?.getReader();
@@ -318,82 +395,95 @@ export default function SettingsPage() {
         </button>
       </Section>
 
-      {/* IMAP History Import */}
-      <Section title="Importar historial completo" icon="📬">
+      {/* Gmail Connected Accounts */}
+      <Section title="Cuentas de Gmail conectadas" icon="📬">
+        {gmailToast && (
+          <div className={`mb-4 px-4 py-2.5 rounded-xl text-sm font-medium border ${gmailToast.startsWith("✅") ? "bg-success/8 border-success/20 text-success" : "bg-danger/8 border-danger/20 text-danger"}`}>
+            {gmailToast}
+          </div>
+        )}
+
         <p className="text-sm text-mid mb-4">
-          Conecta tu casilla de Gmail para importar automáticamente todos los mails de
-          PedidosYa, Rappi, Uber, Mercado Libre, bancos y más.
+          Conectá una o más casillas de Gmail para importar automáticamente emails de bancos,
+          MercadoPago, PayPal, Rappi, Uber, y más. Coach Financiero solo lee tus emails para detectar transacciones.
         </p>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-          <div>
-            <label className="text-xs font-semibold text-mid block mb-1">Importar desde</label>
-            <input
-              type="date"
-              value={imapSince}
-              onChange={(e) => setImapSince(e.target.value)}
-              className="input-light w-full"
-            />
-          </div>
-          <div className="flex items-end">
-            <button
-              onClick={handleImapImport}
-              disabled={imapImporting}
-              className="btn-primary w-full disabled:opacity-40 disabled:cursor-not-allowed disabled:transform-none"
-            >
-              {imapImporting ? "⏳ Importando..." : "📥 Importar historial"}
-            </button>
-          </div>
-        </div>
 
-        {/* Progress bar */}
-        {imapImporting && imapProgress && (
-          <div className="mb-3">
-            <div className="flex justify-between text-xs text-mid mb-1.5">
-              <span>Procesados: {imapProgress.processed} / {imapProgress.total}</span>
-              <span>{imapProgress.percent.toFixed(1)}%</span>
-            </div>
-            <div className="h-2 bg-border rounded-full overflow-hidden">
-              <div
-                className="h-full bg-teal rounded-full transition-all duration-500"
-                style={{ width: `${imapProgress.percent}%` }}
-              />
-            </div>
-          </div>
-        )}
-        {imapImporting && !imapProgress && (
-          <div className="flex items-center gap-2 text-sm text-mid">
-            <span className="w-4 h-4 border-2 border-teal/30 border-t-teal rounded-full animate-spin" />
-            Conectando con el servidor IMAP…
+        {/* Lista de cuentas conectadas */}
+        {(connectedEmails ?? []).length > 0 && (
+          <div className="flex flex-col gap-3 mb-4">
+            {(connectedEmails ?? []).map(account => (
+              <div key={account.id} className="border border-border rounded-xl p-4 bg-raised">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-white border border-border flex items-center justify-center">
+                      <svg width="16" height="16" viewBox="0 0 24 24">
+                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09Z"/>
+                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23Z"/>
+                        <path fill="#FBBC05" d="M5.84 14.1c-.22-.66-.35-1.36-.35-2.1s.13-1.44.35-2.1V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.83Z"/>
+                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53Z"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-hi">{account.email}</p>
+                      <p className="text-xs text-lo">
+                        {account.lastImportAt
+                          ? `Última importación: ${new Date(account.lastImportAt).toLocaleDateString("es-AR")}`
+                          : "Sin importaciones aún"}
+                      </p>
+                    </div>
+                  </div>
+                  <button onClick={() => handleDisconnect(account.id)} className="text-xs text-lo hover:text-danger transition-colors">
+                    Desconectar
+                  </button>
+                </div>
+
+                {/* Import controls */}
+                <div className="flex gap-2 items-center">
+                  <input
+                    type="date" value={importingSince}
+                    onChange={e => setImportingSince(e.target.value)}
+                    className="input-light text-sm flex-1"
+                  />
+                  <button
+                    onClick={() => handleGmailImport(account.id)}
+                    disabled={importingId === account.id}
+                    className="btn-primary text-sm px-4 disabled:opacity-40 disabled:cursor-not-allowed disabled:transform-none whitespace-nowrap"
+                  >
+                    {importingId === account.id ? "⏳ Importando…" : "📥 Importar"}
+                  </button>
+                </div>
+
+                {importLog[account.id] && (
+                  <p className="text-xs text-mid mt-2 flex items-center gap-1.5">
+                    {importingId === account.id && <span className="w-3 h-3 border-2 border-teal/30 border-t-teal rounded-full animate-spin inline-block" />}
+                    {importLog[account.id]}
+                  </p>
+                )}
+                {importResult[account.id] && (
+                  <div className="mt-2 p-3 bg-success/8 border border-success/20 rounded-lg text-xs">
+                    <span className="font-bold text-success">✅ Listo — </span>
+                    <span className="text-mid">{importResult[account.id].imported} importadas · {importResult[account.id].duplicates} duplicadas · {importResult[account.id].errors} sin parsear</span>
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         )}
 
-        {/* Result */}
-        {imapResult && (
-          <div className="rounded-xl bg-success/8 border border-success/20 px-4 py-3 text-sm">
-            <p className="font-bold text-success mb-1">✅ Importación completada</p>
-            <div className="grid grid-cols-3 gap-3 text-xs text-mid">
-              <div><span className="font-bold text-hi">{imapResult.imported}</span> importadas</div>
-              <div><span className="font-bold text-hi">{imapResult.duplicates}</span> duplicadas</div>
-              <div><span className="font-bold text-hi">{imapResult.errors}</span> con error</div>
-            </div>
-          </div>
-        )}
-        {imapError && (
-          <div className="rounded-xl bg-danger/8 border border-danger/20 px-4 py-3 text-sm text-danger">
-            <p className="font-bold mb-1">⚠️ Error al importar</p>
-            <p className="text-xs">{imapError}</p>
-            <p className="text-xs text-mid mt-1">Verifica las variables IMAP_HOST, IMAP_USER y IMAP_PASSWORD en el .env del servidor.</p>
-          </div>
-        )}
+        {/* Botón conectar nueva cuenta */}
+        <button onClick={handleConnectGmail} className="w-full flex items-center justify-center gap-2.5 px-4 py-3 border-2 border-dashed border-border rounded-xl text-sm font-medium text-mid hover:border-teal hover:text-teal hover:bg-teal/5 transition-all">
+          <svg width="18" height="18" viewBox="0 0 24 24">
+            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09Z"/>
+            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23Z"/>
+            <path fill="#FBBC05" d="M5.84 14.1c-.22-.66-.35-1.36-.35-2.1s.13-1.44.35-2.1V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.83Z"/>
+            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53Z"/>
+          </svg>
+          + Conectar cuenta de Gmail
+        </button>
 
-        <div className="mt-3 p-3 bg-raised rounded-xl text-xs text-mid border border-border">
-          <p className="font-semibold text-hi mb-1">¿Cómo configurar Gmail?</p>
-          <ol className="list-decimal list-inside space-y-0.5">
-            <li>Activa "Acceso IMAP" en <span className="text-teal">Gmail → Configuración → Reenvío e IMAP</span></li>
-            <li>Genera un <strong>App Password</strong> en tu cuenta Google → Seguridad → Contraseñas de apps</li>
-            <li>Agrega <code className="bg-border px-1 rounded">IMAP_USER</code> e <code className="bg-border px-1 rounded">IMAP_PASSWORD</code> al .env del servidor</li>
-          </ol>
-        </div>
+        <p className="text-xs text-lo mt-3">
+          Solo se leen emails de remitentes bancarios y de pagos. No se accede a emails personales.
+        </p>
       </Section>
 
       {/* AI Usage */}

@@ -12,6 +12,7 @@ import { coachRouter } from "./routes/coach";
 import { notificationsRouter } from "./routes/notifications";
 import { analyticsRouter } from "./routes/analytics";
 import { authRouter } from "./routes/auth";
+import { emailsRouter } from "./routes/emails";
 import { authMiddleware } from "./middleware/auth";
 import { startDailyCron } from "./jobs/dailyAlerts";
 
@@ -67,6 +68,7 @@ app.use("/api/settings", settingsRouter);
 app.use("/api/coach", coachRouter);
 app.use("/api/notifications", notificationsRouter);
 app.use("/api/analytics", analyticsRouter);
+app.use("/api/emails", emailsRouter);
 
 app.listen(PORT, () => {
   console.log(`[api] ✓ Server running on http://localhost:${PORT}`);
