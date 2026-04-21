@@ -545,6 +545,12 @@ Content-Type: application/json
           <p className="text-lo text-xs">Remitentes soportados: Galicia, Brubank, BBVA, Mercado Pago, PayPal, Wise</p>
         </div>
       </Section>
+
+      {process.env.NEXT_PUBLIC_PAGES_BUILD_SHA ? (
+        <p className="text-lo text-[10px] mt-8 text-center font-mono tracking-tight" title="Debe coincidir con el commit del último deploy en Cloudflare Pages">
+          Deploy front: {process.env.NEXT_PUBLIC_PAGES_BUILD_SHA.slice(0, 7)}
+        </p>
+      ) : null}
     </div>
   );
 }

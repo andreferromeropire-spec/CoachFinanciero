@@ -29,6 +29,11 @@ const nextConfig = {
   images: { unoptimized: true },
   allowedDevOrigins: ["192.168.1.4"],
   transpilePackages: ["@coach/db"],
+  // Cloudflare Pages inyecta CF_PAGES_COMMIT_SHA en el build; sirve para comprobar que el front desplegado coincide con Git.
+  env: {
+    NEXT_PUBLIC_PAGES_BUILD_SHA:
+      process.env.CF_PAGES_COMMIT_SHA || process.env.GITHUB_SHA || "",
+  },
 };
 
 module.exports = withPWA(nextConfig);
