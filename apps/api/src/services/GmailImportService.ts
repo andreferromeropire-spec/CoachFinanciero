@@ -177,9 +177,71 @@ export async function importGmailHistory(opts: ImportOptions): Promise<ImportRes
 
       const existing = await prisma.emailIngest.findUnique({ where: { messageId: messageIdKey } });
       if (existing) {
-        result.duplicates++;
-        if (result.processed % 25 === 0 || result.processed === total) {
-          onProgress(`${result.processed}/${total} — ${result.imported} nuevas, ${result.duplicates} duplicados (saltando cuerpo)…`);
+        // Ya hay fila de ingest: si ya tiene movimiento, es duplicado real.
+        if (existing.transactionId) {
+          result.duplicates++;
+          if (result.processed % 25 === 0 || result.processed === total) {
+            onProgress(`${result.processed}/${total} — ${result.imported} nuevas, ${result.duplicates} ya importados…`);
+          }
+          continue;
+        }
+
+        // Huérfano: se guardó el mail (p. ej. PARSED) pero no había cuenta para crear Transaction.
+        if (existing.userId !== userId || !defaultAccount) {
+          result.duplicates++;
+          if (result.processed % 25 === 0 || result.processed === total) {
+            onProgress(`${result.processed}/${total} — ${result.imported} nuevas, ${result.duplicates} pendientes sin cuenta…`);
+          }
+          continue;
+        }
+
+        const rb = existing.rawBody ?? "";
+        const looksHtml = /<\w+[\s>]/.test(rb);
+        const parsedOrphan = parseEmail({
+          from:      existing.from,
+          subject: existing.subject,
+          htmlBody:  looksHtml ? rb : undefined,
+          textBody:  looksHtml ? undefined : rb,
+        });
+
+        if (parsedOrphan) {
+          const tx = await prisma.transaction.create({
+            data: {
+              userId,
+              accountId:   defaultAccount.id,
+              amount:      parsedOrphan.amount,
+              currency:    parsedOrphan.currency,
+              description: parsedOrphan.description,
+              category:    parsedOrphan.category ?? undefined,
+              merchant:    parsedOrphan.merchantNormalized ?? parsedOrphan.merchant ?? undefined,
+              date:        parsedOrphan.date,
+              source:      "EMAIL",
+              rawData:     JSON.parse(JSON.stringify({
+                from: existing.from, subject: existing.subject, items: parsedOrphan.items,
+              })),
+            },
+          });
+          await prisma.emailIngest.update({
+            where: { id: existing.id },
+            data:  {
+              transactionId: tx.id,
+              parsedAt:        new Date(),
+              status:          "PARSED",
+            },
+          });
+          result.imported++;
+        } else {
+          await prisma.emailIngest.update({
+            where: { id: existing.id },
+            data:  { status: "FAILED", parsedAt: null },
+          });
+          result.errors++;
+        }
+
+        if (result.processed % 5 === 0 || result.processed === total) {
+          onProgress(
+            `${result.processed}/${total} — ${result.imported} movimientos (incl. pendientes viejos), ${result.duplicates} ya OK…`,
+          );
         }
         continue;
       }

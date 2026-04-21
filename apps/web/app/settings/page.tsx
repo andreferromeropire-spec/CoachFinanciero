@@ -466,7 +466,8 @@ export default function SettingsPage() {
                 <p className="text-xs text-mid mb-2">
                   Importá desde una fecha (solo mails de bancos / pagos que ya filtramos). Hasta 5000 mensajes por corrida.
                   <span className="block mt-1.5 text-lo">
-                    <strong className="text-mid">Duplicado</strong> = ese mail ya se procesó antes (sigue contando aunque no se haya creado movimiento en Historia si el mail no se pudo interpretar o no tenías una cuenta bancaria creada en la app).
+                    <strong className="text-mid">Ya importado</strong> = ese mail ya tiene movimiento en la app.
+                    Si antes importaste <strong className="text-mid">sin</strong> tener una cuenta creada, al importar de nuevo el sistema intenta completar esos mails desde lo guardado (no hace falta borrar nada).
                   </span>
                 </p>
                 <div className="flex flex-wrap gap-1.5 mb-2">
