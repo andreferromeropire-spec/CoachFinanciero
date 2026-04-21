@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { apiFetch } from "../../../../lib/api";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+
 interface Props {
   onNext: (gmailConnected: boolean) => void;
   onSkip: () => void;
@@ -64,8 +66,12 @@ export function Step2Gmail({ onNext, onSkip }: Props) {
         </div>
       ) : (
         <button
+          type="button"
           className="w-full flex items-center justify-center gap-3 border-2 border-border bg-white hover:bg-raised rounded-xl py-3.5 font-semibold text-hi text-sm transition-all duration-200 shadow-sm hover:shadow-md"
-          onClick={() => alert("Google OAuth requiere configurar credenciales en Google Cloud Console. Usá la opción IMAP manual por ahora.")}
+          onClick={() => {
+            const token = typeof window !== "undefined" ? localStorage.getItem("coach_token") ?? "" : "";
+            window.location.href = `${API_URL}/api/auth/google/gmail?token=${encodeURIComponent(token)}`;
+          }}
         >
           <svg width="20" height="20" viewBox="0 0 48 48">
             <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v8.51h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.14z"/>
