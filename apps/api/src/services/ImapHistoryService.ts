@@ -8,6 +8,9 @@ import { mapCategory } from "./CategoryMapper";
 const KNOWN_SENDERS = [
   "noreply@pedidosya.com",
   "no-reply@rappi.com",
+  "no-reply@rappi.com.ar",
+  "noreply@rappi.com.ar",
+  "notificaciones@rappi.com.ar",
   "noreply@mercadolibre.com",
   "uber.receipts@uber.com",
   "receipts@uber.com",

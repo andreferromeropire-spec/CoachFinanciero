@@ -86,12 +86,15 @@ export async function importGmailHistory(opts: ImportOptions): Promise<ImportRes
 
   const result: ImportResult = { processed: 0, imported: 0, duplicates: 0, errors: 0 };
 
-  // Construir query para Gmail — buscar emails de bancos
+  // Construir query para Gmail — bancos, pagos y delivery (debe coincidir con quienes parseamos en emailParser)
   const sinceTs = opts.since
     ? Math.floor(opts.since.getTime() / 1000)
     : Math.floor((Date.now() - 90 * 24 * 3600 * 1000) / 1000); // últimos 90 días
 
-  const query = `after:${sinceTs} (from:mercadopago OR from:paypal OR from:wise OR from:bbva OR from:galicia OR from:naranja OR from:brubank OR from:ualá OR from:lemon OR from:prex OR from:macro OR from:santander OR from:hsbc OR from:icbc OR from:supervielle OR from:bancor OR from:bind OR from:openbank)`;
+  const senders =
+    "from:mercadopago OR from:mercadolibre OR from:paypal OR from:wise OR from:bbva OR from:galicia OR from:naranja OR from:brubank OR from:ualá OR from:lemon OR from:prex OR from:macro OR from:santander OR from:hsbc OR from:icbc OR from:supervielle OR from:bancor OR from:bind OR from:openbank OR " +
+    "from:rappi OR from:pedidosya OR from:ubereats OR from:uber.com OR from:glovo OR from:cornershop OR from:justo";
+  const query = `after:${sinceTs} (${senders})`;
 
   onProgress(`Buscando emails en ${email}…`);
 

@@ -140,23 +140,50 @@ const parsePedidosYa: Parser = ({ from, subject, htmlBody, textBody }) => {
 
 // ── Rappi ─────────────────────────────────────────────────────────────────────
 const parseRappi: Parser = ({ from, subject, htmlBody, textBody }) => {
+  const fromLower = from.toLowerCase();
+  const subjLower = subject.toLowerCase();
   const isRappi =
-    from.toLowerCase().includes("rappi") ||
-    subject.toLowerCase().includes("rappi") ||
-    /tu pedido|confirmaci[oó]n de pedido/i.test(subject);
+    fromLower.includes("rappi") ||
+    fromLower.includes("@rappi.") ||
+    subjLower.includes("rappi") ||
+    /tu pedido|confirmaci[oó]n de pedido|comprobante de pedido|pedido confirmado/i.test(subject);
 
   if (!isRappi) return null;
 
   const text = textBody || htmlBody?.replace(/<[^>]+>/g, " ") || "";
 
   const storeMatch =
-    text.match(/(?:tienda|restaurante|compra en)[:\s]+([^\n\r]+)/i) ||
-    text.match(/en\s+([A-ZÁÉÍÓÚ][^\n\r]{2,40})/);
-  const merchant = storeMatch ? storeMatch[1].trim() : "Rappi";
+    text.match(/(?:tienda|restaurante|compra en|pedido en|tu pedido de)[:\s]+([^\n\r]+)/i) ||
+    text.match(/en\s+([A-ZÁÉÍÓÚÑ][^\n\r]{2,50})/);
+  const merchant = storeMatch ? storeMatch[1].trim().replace(/\s+/g, " ") : "Rappi";
 
-  const totalMatch = text.match(/(?:total|total del pedido)[:\s]*\$?\s*([\d.,]+)/i);
-  if (!totalMatch) return null;
-  const amount = parseAmount(totalMatch[1]);
+  let amount = 0;
+  const amountRes = [
+    /(?:total|total del pedido|total a pagar|subtotal|pagaste|importe(?:\s+total)?|a pagar|valor del pedido)[:\s]*\$?\s*([\d]{1,3}(?:[.,]\d{3})*(?:[.,]\d{2})?)/i,
+    /([\d]{1,3}(?:\.\d{3})*,\d{2})\s*ARS\b/i,
+    /\$\s*([\d]{1,3}(?:\.\d{3})*,\d{2})\b/,
+    /\$\s*([\d]+,\d{2})\b/,
+  ];
+  for (const re of amountRes) {
+    const m = text.match(re);
+    if (m) {
+      const n = parseAmount(m[1]);
+      if (n > 0 && n < 10_000_000) {
+        amount = n;
+        break;
+      }
+    }
+  }
+  if (amount <= 0) {
+    const found: number[] = [];
+    const re = /\$\s*([\d]{1,3}(?:\.\d{3})*,\d{2})\b/g;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(text)) !== null) {
+      const n = parseAmount(m[1]);
+      if (n > 0 && n < 5_000_000) found.push(n);
+    }
+    if (found.length > 0) amount = Math.max(...found);
+  }
   if (amount <= 0) return null;
 
   const items = htmlBody
