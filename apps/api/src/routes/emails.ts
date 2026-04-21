@@ -39,7 +39,8 @@ emailsRouter.delete("/:id", async (req: Request, res: Response) => {
 emailsRouter.post("/:id/import", async (req: Request, res: Response) => {
   const userId = uid(req);
   const { id } = req.params;
-  const { since, maxEmails = 100 } = req.body as { since?: string; maxEmails?: number };
+  const { since, maxEmails: rawMax } = req.body as { since?: string; maxEmails?: number };
+  const maxEmails = Math.min(Math.max(typeof rawMax === "number" && !Number.isNaN(rawMax) ? rawMax : 2500, 1), 5000);
 
   const account = await prisma.connectedEmail.findFirst({ where: { id, userId } });
   if (!account) {

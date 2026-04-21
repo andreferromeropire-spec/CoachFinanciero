@@ -57,9 +57,11 @@ export default function SettingsPage() {
   interface ConnectedEmail { id: string; email: string; lastImportAt: string | null; createdAt: string; }
   const { data: connectedEmails, mutate: mutateEmails } = useSWR<ConnectedEmail[]>("/api/emails", fetcher);
   const [importingSince, setImportingSince] = useState(() => {
-    const d = new Date(); d.setMonth(d.getMonth() - 3);
+    const d = new Date();
+    d.setFullYear(d.getFullYear() - 5);
     return d.toISOString().slice(0, 10);
   });
+  const [gmailMaxEmails, setGmailMaxEmails] = useState(3000);
   const [importingId, setImportingId]   = useState<string | null>(null);
   const [importLog, setImportLog]       = useState<Record<string, string>>({});
   const [importResult, setImportResult] = useState<Record<string, { imported: number; duplicates: number; errors: number }>>({});
@@ -110,7 +112,7 @@ export default function SettingsPage() {
       const resp = await fetch(`${API_URL}/api/emails/${accountId}/import`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ since: importingSince, maxEmails: 200 }),
+        body: JSON.stringify({ since: importingSince, maxEmails: gmailMaxEmails }),
       });
       const reader = resp.body?.getReader();
       if (!reader) throw new Error("No stream");
@@ -461,16 +463,57 @@ export default function SettingsPage() {
                 </div>
 
                 {/* Import controls */}
-                <div className="flex gap-2 items-center">
+                <p className="text-xs text-mid mb-2">
+                  Importá desde una fecha (solo mails de bancos / pagos que ya filtramos). Podés traer hasta 5000 mensajes por corrida; si tenés más historial, ejecutá otra vez (los duplicados se omiten).
+                </p>
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                  {(
+                    [
+                      { label: "2 años", kind: "yearsAgo" as const, years: 2 },
+                      { label: "5 años", kind: "yearsAgo" as const, years: 5 },
+                      { label: "10 años", kind: "yearsAgo" as const, years: 10 },
+                      { label: "Desde 2010", kind: "fixedDate" as const, date: "2010-01-01" },
+                    ] as const
+                  ).map((p) => (
+                    <button
+                      key={p.label}
+                      type="button"
+                      onClick={() => {
+                        if (p.kind === "fixedDate") {
+                          setImportingSince(p.date);
+                          return;
+                        }
+                        const d = new Date();
+                        d.setFullYear(d.getFullYear() - p.years);
+                        setImportingSince(d.toISOString().slice(0, 10));
+                      }}
+                      className="text-[11px] font-semibold px-2.5 py-1 rounded-lg border border-border text-mid hover:border-teal hover:text-teal hover:bg-teal/5 transition-colors"
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
                   <input
                     type="date" value={importingSince}
                     onChange={e => setImportingSince(e.target.value)}
-                    className="input-light text-sm flex-1"
+                    className="input-light text-sm flex-1 min-w-0"
                   />
+                  <select
+                    value={gmailMaxEmails}
+                    onChange={(e) => setGmailMaxEmails(Number(e.target.value))}
+                    className="input-light text-sm sm:w-44 shrink-0"
+                    title="Máximo de mails a listar y procesar en esta corrida"
+                  >
+                    <option value={500}>Hasta 500 mails</option>
+                    <option value={1500}>Hasta 1500 mails</option>
+                    <option value={3000}>Hasta 3000 mails</option>
+                    <option value={5000}>Hasta 5000 mails</option>
+                  </select>
                   <button
                     onClick={() => handleGmailImport(account.id)}
                     disabled={importingId === account.id}
-                    className="btn-primary text-sm px-4 disabled:opacity-40 disabled:cursor-not-allowed disabled:transform-none whitespace-nowrap"
+                    className="btn-primary text-sm px-4 disabled:opacity-40 disabled:cursor-not-allowed disabled:transform-none whitespace-nowrap shrink-0"
                   >
                     {importingId === account.id ? "⏳ Importando…" : "📥 Importar"}
                   </button>

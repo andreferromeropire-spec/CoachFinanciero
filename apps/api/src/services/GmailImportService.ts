@@ -95,29 +95,45 @@ export async function importGmailHistory(opts: ImportOptions): Promise<ImportRes
 
   onProgress(`Buscando emails en ${email}…`);
 
+  const cap = Math.min(Math.max(maxEmails, 1), 5000);
+
+  async function listMessageIds(token: string): Promise<string[]> {
+    const ids: string[] = [];
+    let pageToken: string | undefined;
+    while (ids.length < cap) {
+      const pageSize = Math.min(500, cap - ids.length);
+      let path = `users/me/messages?maxResults=${pageSize}&q=${encodeURIComponent(query)}`;
+      if (pageToken) path += `&pageToken=${encodeURIComponent(pageToken)}`;
+      const listData = await gmailFetch(path, token) as {
+        messages?: Array<{ id: string }>;
+        nextPageToken?: string;
+      };
+      const batch = (listData.messages ?? []).map(m => m.id);
+      if (batch.length === 0) break;
+      ids.push(...batch);
+      pageToken = listData.nextPageToken;
+      if (!pageToken) break;
+      if (ids.length < cap) {
+        onProgress(`Listando bandeja… ${ids.length} mensajes encontrados`);
+      }
+    }
+    return ids;
+  }
+
   let messageIds: string[] = [];
   try {
-    const listData = await gmailFetch(
-      `users/me/messages?maxResults=${maxEmails}&q=${encodeURIComponent(query)}`,
-      accessToken,
-    ) as { messages?: Array<{ id: string }> };
-    messageIds = (listData.messages ?? []).map(m => m.id);
+    messageIds = await listMessageIds(accessToken);
   } catch (err) {
     if (String(err).includes("TOKEN_EXPIRED") && opts.refreshToken) {
       onProgress("Renovando token…");
       const newToken = await refreshAccessToken(opts.refreshToken);
       if (!newToken) throw new Error("No se pudo renovar el token. Reconectá la cuenta.");
       accessToken = newToken;
-      // Actualizar en DB
       await prisma.connectedEmail.update({
         where: { id: accountId },
         data:  { accessToken },
       });
-      const listData = await gmailFetch(
-        `users/me/messages?maxResults=${maxEmails}&q=${encodeURIComponent(query)}`,
-        accessToken,
-      ) as { messages?: Array<{ id: string }> };
-      messageIds = (listData.messages ?? []).map(m => m.id);
+      messageIds = await listMessageIds(accessToken);
     } else {
       throw err;
     }
