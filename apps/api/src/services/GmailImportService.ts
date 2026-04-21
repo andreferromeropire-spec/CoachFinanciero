@@ -72,11 +72,20 @@ interface GmailMessage {
   internalDate?: string;
 }
 
-async function gmailFetch(path: string, token: string) {
+async function gmailFetch(path: string, token: string, attempt = 0): Promise<unknown> {
   const res = await fetch(`https://gmail.googleapis.com/gmail/v1/${path}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (res.status === 401) throw new Error("TOKEN_EXPIRED");
+  if (res.status === 429 && attempt < 6) {
+    const wait = Math.min(8000, 500 * 2 ** attempt);
+    await new Promise((r) => setTimeout(r, wait));
+    return gmailFetch(path, token, attempt + 1);
+  }
+  if (!res.ok) {
+    const errBody = await res.text().catch(() => "");
+    throw new Error(`Gmail API ${res.status}: ${errBody.slice(0, 200)}`);
+  }
   return res.json();
 }
 
@@ -147,27 +156,46 @@ export async function importGmailHistory(opts: ImportOptions): Promise<ImportRes
   // Buscar la primera cuenta del usuario para asociar transacciones
   const defaultAccount = await prisma.account.findFirst({ where: { userId } });
 
+  function headerFrom(msg: GmailMessage, name: string): string {
+    const headers = msg.payload?.headers ?? [];
+    return headers.find(h => h.name.toLowerCase() === name.toLowerCase())?.value ?? "";
+  }
+
+  const total = messageIds.length;
   for (const msgId of messageIds) {
     result.processed++;
     try {
-      const msg = await gmailFetch(`users/me/messages/${msgId}?format=full`, accessToken) as GmailMessage;
+      // 1) Solo metadatos — liviano; evita bajar el cuerpo completo si ya está importado
+      const metaPath =
+        `users/me/messages/${encodeURIComponent(msgId)}?format=metadata` +
+        "&metadataHeaders=Message-ID&metadataHeaders=From&metadataHeaders=Subject";
+      const meta = await gmailFetch(metaPath, accessToken) as GmailMessage;
 
-      const headers = msg.payload?.headers ?? [];
-      const getHeader = (name: string) => headers.find(h => h.name.toLowerCase() === name.toLowerCase())?.value ?? "";
+      const fromMeta = headerFrom(meta, "From");
+      const subjectMeta = headerFrom(meta, "Subject");
+      const messageIdKey = headerFrom(meta, "Message-ID") || msgId;
 
-      const from      = getHeader("From");
-      const subject   = getHeader("Subject");
-      const messageId = getHeader("Message-ID") || msgId;
-      const receivedAt = msg.internalDate ? new Date(parseInt(msg.internalDate)) : new Date();
-
-      const { text, html } = extractParts(msg.payload ?? {});
-
-      // Deduplicar por messageId
-      const existing = await prisma.emailIngest.findUnique({ where: { messageId } });
+      const existing = await prisma.emailIngest.findUnique({ where: { messageId: messageIdKey } });
       if (existing) {
         result.duplicates++;
+        if (result.processed % 25 === 0 || result.processed === total) {
+          onProgress(`${result.processed}/${total} — ${result.imported} nuevas, ${result.duplicates} duplicados (saltando cuerpo)…`);
+        }
         continue;
       }
+
+      // 2) Mail nuevo: bajar cuerpo completo para parsear
+      const msg = await gmailFetch(
+        `users/me/messages/${encodeURIComponent(msgId)}?format=full`,
+        accessToken,
+      ) as GmailMessage;
+
+      const from      = headerFrom(msg, "From") || fromMeta;
+      const subject   = headerFrom(msg, "Subject") || subjectMeta;
+      const messageId = headerFrom(msg, "Message-ID") || messageIdKey;
+      const receivedAt = msg.internalDate ? new Date(parseInt(msg.internalDate, 10)) : new Date();
+
+      const { text, html } = extractParts(msg.payload ?? {});
 
       // Parsear email para extraer transacción
       const parsed = parseEmail({ from, subject, htmlBody: html, textBody: text });
@@ -209,12 +237,17 @@ export async function importGmailHistory(opts: ImportOptions): Promise<ImportRes
         result.errors++;
       }
 
-      if (result.processed % 10 === 0) {
-        onProgress(`${result.processed}/${messageIds.length} procesados…`);
+      if (result.processed % 5 === 0 || result.processed === total) {
+        onProgress(
+          `${result.processed}/${total} — ${result.imported} importadas, ${result.duplicates} duplicados, ${result.errors} sin parsear…`,
+        );
       }
     } catch (err) {
       result.errors++;
       console.error(`[GmailImport] error en msg ${msgId}:`, err);
+      if (result.processed % 20 === 0) {
+        onProgress(`${result.processed}/${total} — error en algunos mensajes, sigue…`);
+      }
     }
   }
 

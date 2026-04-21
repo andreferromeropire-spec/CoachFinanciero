@@ -58,6 +58,15 @@ emailsRouter.post("/:id/import", async (req: Request, res: Response) => {
     res.write(`data: ${JSON.stringify(data)}\n\n`);
   }
 
+  // Evita que proxies (Railway, Cloudflare) cierren la conexión por inactividad durante imports largos
+  const keepAlive = setInterval(() => {
+    try {
+      res.write(":keepalive\n\n");
+    } catch {
+      clearInterval(keepAlive);
+    }
+  }, 12000);
+
   try {
     const result = await importGmailHistory({
       accountId: account.id,
@@ -81,5 +90,7 @@ emailsRouter.post("/:id/import", async (req: Request, res: Response) => {
   } catch (err) {
     send({ type: "error", message: String(err) });
     res.end();
+  } finally {
+    clearInterval(keepAlive);
   }
 });
