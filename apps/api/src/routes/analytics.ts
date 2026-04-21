@@ -107,8 +107,12 @@ analyticsRouter.get("/yearly", async (req: Request, res: Response) => {
   if (!oldest._min.date) {
     years = [currentYear - 2, currentYear - 1, currentYear];
   } else {
-    let minY = new Date(oldest._min.date).getFullYear();
-    const maxSpan = 35;
+    // Año del movimiento más viejo que tengas
+    const dataMinY = new Date(oldest._min.date).getFullYear();
+    // Pestañas: bajar como mínimo 15 años desde hoy aunque el primer dato sea reciente (ej. importaste
+    // mails viejos pero el parser dejó la fecha en 2024 — igual podés abrir 2021 y ver si hay algo).
+    let minY = Math.min(dataMinY, currentYear - 15);
+    const maxSpan = 40;
     if (currentYear - minY > maxSpan - 1) minY = currentYear - (maxSpan - 1);
     years = [];
     for (let y = minY; y <= currentYear; y++) years.push(y);
