@@ -78,12 +78,13 @@ authRouter.post("/register", async (req: Request, res: Response) => {
     const hash = await bcrypt.hash(password, 12);
 
     const user = await prisma.user.create({
-      data: { name, email, password: hash },
+      data: { name, email, password: hash, status: "active" },
     });
 
     await prisma.userSettings.create({ data: { userId: user.id } });
 
-    res.status(201).json({ message: "Registration successful, pending approval" });
+    const token = createToken(user.id);
+    res.status(201).json({ token, user: { id: user.id, email: user.email, name: user.name, isAdmin: user.isAdmin } });
   } catch (err) {
     console.error("[auth/register]", err);
     res.status(500).json({ error: "Server error, please try again" });
