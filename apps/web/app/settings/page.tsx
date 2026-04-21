@@ -149,11 +149,18 @@ export default function SettingsPage() {
   const [imapImporting, setImapImporting] = useState(false);
   const [imapResult, setImapResult] = useState<{ imported: number; duplicates: number; errors: number; total: number } | null>(null);
   const [imapError, setImapError] = useState<string | null>(null);
+  const [imapProgress, setImapProgress] = useState<{
+    processed: number;
+    total: number;
+    percent: number;
+    currentSubject?: string;
+  } | null>(null);
 
   async function handleImapImport() {
     setImapImporting(true);
     setImapResult(null);
     setImapError(null);
+    setImapProgress(null);
 
     try {
       const resp = await fetch(`${API_URL}/api/ingest/imap/history`, {
@@ -181,12 +188,19 @@ export default function SettingsPage() {
             const data = JSON.parse(line.slice(6));
             if (data.done) {
               setImapResult(data);
+              setImapProgress(null);
               setImapImporting(false);
             } else if (data.error) {
               setImapError(data.error);
+              setImapProgress(null);
               setImapImporting(false);
             } else if (data.processed !== undefined) {
-              setImapProgress(data);
+              setImapProgress({
+                processed: data.processed,
+                total: data.total,
+                percent: data.percent,
+                currentSubject: data.currentSubject,
+              });
             }
           } catch { /* ignore parse errors */ }
         }
