@@ -97,7 +97,7 @@ Cada fase tiene **pasos** ordenados. Los ítems ya cubiertos por el alcance actu
 4. ~~Optimización duplicados (metadata) + keep-alive.~~
 5. ~~Completar ingests huérfanos cuando el usuario crea cuenta después.~~
 6. Ampliar remitentes y parsers (más bancos, más formatos HTML). `[ ]` *continuo*
-7. ~~Fallback IA (Haiku) para formato desconocido~~ → implementar y medir costo/cuota. `[ ]`
+7. Fallback IA (Haiku) para formato desconocido: implementar y medir costo/cuota. `[ ]`
 8. Panel “**Cola de fallidos**”: reintentar parse, editar raw, marcar “ignorar”. `[ ]`
 
 ---
