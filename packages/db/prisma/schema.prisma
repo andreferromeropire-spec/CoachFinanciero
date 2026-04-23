@@ -76,6 +76,9 @@ model User {
   // 'waitlist' | 'approved' | 'blocked'
   status    String   @default("waitlist")
   createdAt DateTime @default(now())
+  // Reset contraseña (se guarda SHA-256 hex del token; 1h de validez) — masterplan Fase 1.3
+  passwordResetToken   String?
+  passwordResetExpiry  DateTime?
 
   accounts        Account[]
   transactions    Transaction[]
@@ -86,6 +89,8 @@ model User {
   settings        UserSettings[]
   connectedEmails ConnectedEmail[]
   refreshTokens   RefreshToken[]
+
+  @@index([passwordResetToken])
 }
 
 // Sesión persistente: refresh en cookie httpOnly, access JWT corto (masterplan §4.1)

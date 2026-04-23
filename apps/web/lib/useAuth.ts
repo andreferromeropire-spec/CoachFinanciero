@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 
-const PUBLIC_PATHS = ["/login", "/register", "/waitlist-pending", "/forgot-password"];
+const PUBLIC_PATHS = ["/login", "/register", "/waitlist-pending", "/forgot-password", "/reset-password"];
 
 export function useAuthGuard() {
   const router = useRouter();

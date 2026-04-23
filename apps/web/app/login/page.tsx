@@ -261,7 +261,25 @@ export default function LoginPage() {
             <div style={{ marginBottom: 12 }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
                 <label style={{ fontSize: 12.5, fontWeight: 500, color: C.mid }}>Contraseña</label>
-                {mode === "login" && <span style={{ fontSize: 12, color: C.lo, fontWeight: 500 }}>¿Olvidaste?</span>}
+                {mode === "login" && (
+                  <a
+                    href="/forgot-password"
+                    style={{
+                      fontSize:          12,
+                      color:             C.teal,
+                      fontWeight:        600,
+                      textDecoration:   "underline",
+                      textUnderlineOffset: 2,
+                      cursor:           "pointer",
+                      position:         "relative",
+                      zIndex:           2,
+                      whiteSpace:       "nowrap",
+                      padding:          "2px 2px 2px 4px",
+                    }}
+                  >
+                    ¿Olvidaste?
+                  </a>
+                )}
               </div>
               <div style={{ position: "relative" }}>
                 <span style={iconWrap}>

@@ -8,15 +8,42 @@
 |---|----------------|--------|
 | 1 | **Sesión persistente** — `RefreshToken` en DB, access 15m, refresh en cookie `coach_rt` (httpOnly, `SameSite=none` + `secure` en prod, `lax` en dev), `POST /api/auth/refresh`, `POST /api/auth/logout`, web con `credentials: "include"` + refresh en 401 | hecho (ver SQL manual abajo si no usás `migrate deploy`) |
 | 2 | **Helmet + rate limiting** — `helmet()`, `trust proxy`, límites: auth 10/min, coach 20/min, ingest 50/h, global 200/min | hecho |
-| 3 | **Reset de contraseña** (Resend + token) | siguiente paso lógico |
-| 4 | **Verificación de email** | pendiente |
+| 3 | **Reset de contraseña** — `passwordResetToken` (hash) + `passwordResetExpiry` 1h, Resend, `POST /forgot-password`, `POST /reset-password`, web `/forgot-password` y `/reset-password` | hecho (ver `RESEND_*` en API y SQL abajo) |
+| 4 | **Verificación de email** | siguiente paso lógico |
 | 5 | **Toasts + Error boundary** | pendiente |
 | 6 | **formatMoney / formatDate** centralizados | pendiente |
 | 7+ | `isInternalTransfer` / `isIgnored`, `ExchangeRate`, `LearnedRule`, matches, etc. (ver plan) | pendiente |
 
+### Cómo probar Helmet + rate limit (automático)
+
+Con el API levantado en `localhost:4000`:
+
+```bash
+cd apps/api
+npm run smoke:limits
+npm run smoke:limits:all
+```
+
+- `smoke:limits` — comprobaciones rápidas (Helmet + límite `/api/auth`, ~12 requests).
+- `smoke:limits:all` — además de lo anterior, prueba el límite global (cuenta 1+12 peticiones anteriores + el resto hasta 429; ~200+ `GET` a `/api/health`). Tras probar con `smoke:limits` es mejor **reiniciar** `npm run dev` o esperar 1 minuto para que el contador baje. Opción con IA: `npx tsx scripts/verify-rate-limits.ts --all --coach` (cuidado con crédito Anthropic).
+
+Otra consola, antes: `cd apps/api && npm run dev`.
+
 ### Acción inmediata sugerida
 
-- **Reset de contraseña** (Resend + token en DB) según `masterplan.md` §6 ítem 3.
+- **Verificación de email** (6 dígitos) según `masterplan.md` §6 ítem 4, y toasts + error boundary (ítem 5).
+
+### SQL manual en Railway (columnas reset de contraseña, ítem 3)
+
+Solo si no corrés `prisma migrate deploy` y faltan columnas en `User`:
+
+```sql
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "passwordResetToken" TEXT;
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "passwordResetExpiry" TIMESTAMP(3);
+CREATE INDEX IF NOT EXISTS "User_passwordResetToken_idx" ON "User"("passwordResetToken");
+```
+
+Luego: `npx prisma migrate resolve --applied 20260424120000_password_reset` (en `packages/db` con `DATABASE_URL` de Railway).
 
 ### SQL manual en Railway (tabla `RefreshToken`)
 
