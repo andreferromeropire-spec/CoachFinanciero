@@ -6,9 +6,9 @@
 
 | # | Ítem (resumen) | Estado |
 |---|----------------|--------|
-| 1 | **Sesión persistente** — `RefreshToken` en DB, access 15m, refresh en cookie `coach_rt` (httpOnly, `SameSite=none` + `secure` en prod, `lax` en dev), `POST /api/auth/refresh`, `POST /api/auth/logout`, web con `credentials: "include"` + refresh en 401 | hecho (correr `prisma migrate` en el entorno donde falte) |
-| 2 | **Helmet + rate limiting** | siguiente paso lógico |
-| 3 | **Reset de contraseña** (Resend + token) | pendiente |
+| 1 | **Sesión persistente** — `RefreshToken` en DB, access 15m, refresh en cookie `coach_rt` (httpOnly, `SameSite=none` + `secure` en prod, `lax` en dev), `POST /api/auth/refresh`, `POST /api/auth/logout`, web con `credentials: "include"` + refresh en 401 | hecho (ver SQL manual abajo si no usás `migrate deploy`) |
+| 2 | **Helmet + rate limiting** — `helmet()`, `trust proxy`, límites: auth 10/min, coach 20/min, ingest 50/h, global 200/min | hecho |
+| 3 | **Reset de contraseña** (Resend + token) | siguiente paso lógico |
 | 4 | **Verificación de email** | pendiente |
 | 5 | **Toasts + Error boundary** | pendiente |
 | 6 | **formatMoney / formatDate** centralizados | pendiente |
@@ -16,8 +16,34 @@
 
 ### Acción inmediata sugerida
 
-- Aplicar migración `RefreshToken` en la DB de despliegue: `npx prisma migrate deploy` (desde `packages/db` o vía el pipeline de Railway).  
-- Implementar **Helmet** y **express-rate-limit** con los umbrales del `masterplan.md` §4.5.
+- **Reset de contraseña** (Resend + token en DB) según `masterplan.md` §6 ítem 3.
+
+### SQL manual en Railway (tabla `RefreshToken`)
+
+Si no usás `npx prisma migrate deploy` y preferís el **Query** de la base en Railway, pegá esto (solo si la tabla **no** existe):
+
+```sql
+CREATE TABLE "RefreshToken" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "tokenHash" TEXT NOT NULL,
+    "expiresAt" TIMESTAMP(3) NOT NULL,
+    "revokedAt" TIMESTAMP(3),
+    "userAgent" TEXT,
+    "ip" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "RefreshToken_pkey" PRIMARY KEY ("id")
+);
+CREATE INDEX "RefreshToken_userId_idx" ON "RefreshToken"("userId");
+CREATE INDEX "RefreshToken_tokenHash_idx" ON "RefreshToken"("tokenHash");
+ALTER TABLE "RefreshToken" ADD CONSTRAINT "RefreshToken_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+```
+
+Luego, desde tu máquina (con `DATABASE_URL` de Railway y estando en `packages/db`):
+
+`npx prisma migrate resolve --applied 20260421120000_refresh_token`
+
+Así Prisma no intenta volver a aplicar esa migración en el próximo `migrate deploy`. Si nunca usás `migrate` en prod y solo el SQL, al menos asegurate de que el `schema` del repo y la DB coinciden.
 
 ---
 

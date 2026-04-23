@@ -1,6 +1,8 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 import { healthRouter } from "./routes/health";
 import { ingestRouter } from "./routes/ingest";
 import { webhooksRouter } from "./routes/webhooks";
@@ -18,6 +20,50 @@ import { startDailyCron } from "./jobs/dailyAlerts";
 
 const app = express();
 const PORT = process.env.PORT || 4000;
+
+/** Railway y proxies — IP real para rate limit */
+app.set("trust proxy", 1);
+
+app.use(helmet());
+
+const err429 = (code: string) => (_req: express.Request, res: express.Response) => {
+  res.status(429).json({
+    error: "Demasiados intentos. Probá de nuevo en unos minutos.",
+    code,
+  });
+};
+
+const globalApiLimiter = rateLimit({
+  windowMs: 60_000,
+  max: 200,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: err429("RATE_LIMIT_GLOBAL"),
+});
+
+const authApiLimiter = rateLimit({
+  windowMs: 60_000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: err429("RATE_LIMIT_AUTH"),
+});
+
+const coachApiLimiter = rateLimit({
+  windowMs: 60_000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: err429("RATE_LIMIT_COACH"),
+});
+
+const ingestApiLimiter = rateLimit({
+  windowMs: 60 * 60_000,
+  max: 50,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: err429("RATE_LIMIT_INGEST"),
+});
 
 const allowedOrigins = [
   process.env.PUBLIC_WEB_URL,
@@ -42,6 +88,8 @@ app.use(cors({
   credentials: true,
 }));
 
+app.use("/api", globalApiLimiter);
+
 // Raw body for webhook signature verification (must come before express.json)
 app.use("/api/webhooks", express.raw({ type: "application/json" }), (req, _res, next) => {
   if (Buffer.isBuffer(req.body)) {
@@ -52,20 +100,20 @@ app.use("/api/webhooks", express.raw({ type: "application/json" }), (req, _res, 
 
 app.use(express.json({ limit: "5mb" }));
 
-// Auth routes (no auth middleware needed)
-app.use("/api/auth", authRouter);
+// Auth routes (no auth middleware needed) — 10 req/min
+app.use("/api/auth", authApiLimiter, authRouter);
 
 // Apply auth middleware to all other API routes
 app.use("/api", authMiddleware);
 
 app.use("/api/health", healthRouter);
-app.use("/api/ingest", ingestRouter);
+app.use("/api/ingest", ingestApiLimiter, ingestRouter);
 app.use("/api/webhooks", webhooksRouter);
 app.use("/api/accounts", accountsRouter);
 app.use("/api/transactions", transactionsRouter);
 app.use("/api/budget", budgetRouter);
 app.use("/api/settings", settingsRouter);
-app.use("/api/coach", coachRouter);
+app.use("/api/coach", coachApiLimiter, coachRouter);
 app.use("/api/notifications", notificationsRouter);
 app.use("/api/analytics", analyticsRouter);
 app.use("/api/emails", emailsRouter);

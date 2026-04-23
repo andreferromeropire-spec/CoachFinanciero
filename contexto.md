@@ -50,6 +50,7 @@ Monorepo: **`apps/web`** (Next.js 14), **`apps/api`** (Express + TS), **`package
 | ~~Historia financiera: analytics mensual/anual/trends; pestañas de años ampliadas (API)~~ | `[x]` |
 | ~~Coach IA (ruta API + uso en web; límites Sonnet/Haiku en settings)~~ | `[x]` |
 | ~~Auth: access JWT 15m + **refresh 30d** (cookie `coach_rt` httpOnly, tabla `RefreshToken`, `POST /api/auth/refresh` y `logout`); login/registro, OAuth Google, Gmail OAuth~~ | `[x]` |
+| ~~API: **Helmet** + **rate limit** (auth 10/min, coach 20/min, ingest 50/h, global 200/min)~~ | `[x]` |
 | PWA / offline | `[ ]` parcial (`next-pwa` existe; alcance UX no auditado aquí) |
 
 ### 1.4 Lo que **no** es hoy (importante)
