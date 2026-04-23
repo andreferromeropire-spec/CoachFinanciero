@@ -1,16 +1,35 @@
 import { createHash, randomBytes } from "node:crypto";
 import bcrypt from "bcryptjs";
-import { Resend } from "resend";
 import { prisma } from "@coach/db";
 import { revokeAllForUser } from "./refreshTokenService";
 
 const RESET_TTL_MS = 60 * 60 * 1000;
 
-const RESEND_KEY = (process.env.RESEND_API_KEY ?? "").trim();
+const RESEND_KEY  = (process.env.RESEND_API_KEY ?? "").trim();
 const RESEND_FROM = (process.env.RESEND_FROM ?? "Coach Financiero <onboarding@resend.dev>").trim();
-const WEB_BASE = (process.env.PUBLIC_WEB_URL ?? "http://localhost:3000").replace(/\/$/, "");
+const WEB_BASE    = (process.env.PUBLIC_WEB_URL ?? "http://localhost:3000").replace(/\/$/, "");
 
-const resend = RESEND_KEY ? new Resend(RESEND_KEY) : null;
+/** Sin SDK (evita requerir Node 20+ en el deploy); API https://resend.com/docs */
+async function enviarMailResend(to: string, subject: string, html: string) {
+  if (!RESEND_KEY) return;
+  const res = await fetch("https://api.resend.com/emails", {
+    method:  "POST",
+    headers: {
+      Authorization: `Bearer ${RESEND_KEY}`,
+      "Content-Type":  "application/json",
+    },
+    body: JSON.stringify({
+      from:    RESEND_FROM,
+      to:      [to],
+      subject,
+      html,
+    }),
+  });
+  if (!res.ok) {
+    const t = await res.text();
+    console.error("[passwordReset] Resend API", res.status, t);
+  }
+}
 
 export function hashPasswordResetValue(raw: string): string {
   return createHash("sha256").update(raw, "utf8").digest("hex");
@@ -49,21 +68,14 @@ export async function requestPasswordReset(emailNormalizado: string): Promise<vo
   const link = `${WEB_BASE}/reset-password?token=${encodeURIComponent(raw)}`;
   const subject = "Cambiá tu contraseña — Coach Financiero";
 
-  if (resend) {
-    const { error } = await resend.emails.send({
-      from:    RESEND_FROM,
-      to:      email,
-      subject,
-      html: `
+  if (RESEND_KEY) {
+    const html = `
         <p>Hola${user.name ? `, ${user.name}` : ""},</p>
         <p>Alguien pidió restablecer la contraseña de tu cuenta. Si fuiste vos, hacé clic en el enlace (válido 1 hora):</p>
         <p><a href="${link}">Restablecer contraseña</a></p>
         <p>Si no pediste el cambio, podés ignorar este correo. Tu clave no se modifica mientras no uses el enlace.</p>
-      `.trim(),
-    });
-    if (error) {
-      console.error("[passwordReset] Resend", error);
-    }
+    `.trim();
+    await enviarMailResend(email, subject, html);
   } else {
     console.log("[passwordReset] RESEND_API_KEY no configurada — enlace (solo desarrollo):", link);
   }
