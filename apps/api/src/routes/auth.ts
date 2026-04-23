@@ -65,8 +65,12 @@ authRouter.post("/login", async (req: Request, res: Response) => {
     return;
   }
 
+  const emailNorm = email.trim().toLowerCase();
+
   try {
-    const user = await prisma.user.findUnique({ where: { email } });
+    const user = await prisma.user.findFirst({
+      where: { email: { equals: emailNorm, mode: "insensitive" } },
+    });
     if (!user) {
       res.status(401).json({ error: "Invalid credentials" });
       return;
@@ -110,8 +114,10 @@ authRouter.post("/register", async (req: Request, res: Response) => {
     return;
   }
 
+  const emailNorm = email.trim().toLowerCase();
+
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email)) {
+  if (!emailRegex.test(emailNorm)) {
     res.status(400).json({ error: "Invalid email format" });
     return;
   }
@@ -122,7 +128,9 @@ authRouter.post("/register", async (req: Request, res: Response) => {
   }
 
   try {
-    const existing = await prisma.user.findUnique({ where: { email } });
+    const existing = await prisma.user.findFirst({
+      where: { email: { equals: emailNorm, mode: "insensitive" } },
+    });
     if (existing) {
       res.status(409).json({ error: "Email already registered" });
       return;
@@ -131,7 +139,7 @@ authRouter.post("/register", async (req: Request, res: Response) => {
     const hash = await bcrypt.hash(password, 12);
 
     const user = await prisma.user.create({
-      data: { name, email, password: hash, status: "active" },
+      data: { name, email: emailNorm, password: hash, status: "active" },
     });
 
     await prisma.userSettings.create({ data: { userId: user.id } });
@@ -313,14 +321,18 @@ authRouter.get("/google/callback", async (req: Request, res: Response) => {
       return;
     }
 
-    // Buscar o crear usuario
-    let user = await prisma.user.findUnique({ where: { email: info.email } });
+    const googleEmail = info.email.trim().toLowerCase();
+
+    // Buscar o crear usuario (misma normalización de email que registro clásico)
+    let user = await prisma.user.findFirst({
+      where: { email: { equals: googleEmail, mode: "insensitive" } },
+    });
     if (!user) {
-      const hash = await bcrypt.hash(info.id ?? info.email, 12);
+      const hash = await bcrypt.hash(info.id ?? googleEmail, 12);
       user = await prisma.user.create({
         data: {
-          email:   info.email,
-          name:    info.name ?? info.email.split("@")[0],
+          email:   googleEmail,
+          name:    info.name ?? googleEmail.split("@")[0],
           password: hash,
           status:  "active",
           isAdmin: false,

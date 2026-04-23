@@ -34,6 +34,10 @@ export default function ForgotPasswordPage() {
         setError(data.error ?? "Revisá el email");
         return;
       }
+      if (!res.ok) {
+        setError(data.error ?? "El servidor no pudo enviar el pedido. Probá de nuevo.");
+        return;
+      }
       setDone(true);
     } catch {
       setError("No se pudo conectar con el servidor");

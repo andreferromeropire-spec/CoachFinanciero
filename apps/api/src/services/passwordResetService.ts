@@ -10,8 +10,7 @@ const RESEND_FROM = (process.env.RESEND_FROM ?? "Coach Financiero <onboarding@re
 const WEB_BASE    = (process.env.PUBLIC_WEB_URL ?? "http://localhost:3000").replace(/\/$/, "");
 
 /** Sin SDK (evita requerir Node 20+ en el deploy); API https://resend.com/docs */
-async function enviarMailResend(to: string, subject: string, html: string) {
-  if (!RESEND_KEY) return;
+async function enviarMailResend(to: string, subject: string, html: string): Promise<boolean> {
   const res = await fetch("https://api.resend.com/emails", {
     method:  "POST",
     headers: {
@@ -25,10 +24,18 @@ async function enviarMailResend(to: string, subject: string, html: string) {
       html,
     }),
   });
+  const bodyText = await res.text();
   if (!res.ok) {
-    const t = await res.text();
-    console.error("[passwordReset] Resend API", res.status, t);
+    console.error("[passwordReset] Resend error HTTP", res.status, bodyText);
+    return false;
   }
+  try {
+    const j = JSON.parse(bodyText) as { id?: string };
+    console.log("[passwordReset] Resend aceptó el envío, id:", j.id ?? bodyText);
+  } catch {
+    console.log("[passwordReset] Resend aceptó el envío (respuesta no JSON):", bodyText.slice(0, 200));
+  }
+  return true;
 }
 
 export function hashPasswordResetValue(raw: string): string {
@@ -46,10 +53,20 @@ export async function requestPasswordReset(emailNormalizado: string): Promise<vo
   const email = emailNormalizado.trim().toLowerCase();
   if (!email) return;
 
-  const user = await prisma.user.findUnique({ where: { email } });
-  if (!user) return;
+  // Mismo email con distinta mayúscula: el registro guarda el string tal cual; en PostgreSQL
+  // el match es case-sensitive, así que findUnique({ email: lower }) fallaba y nunca se enviaba mail.
+  const user = await prisma.user.findFirst({
+    where: { email: { equals: email, mode: "insensitive" } },
+  });
+  if (!user) {
+    console.log(
+      "[passwordReset] no hay usuario con ese email (comparación sin distinguir mayúsculas); se responde 200 genérico al cliente",
+    );
+    return;
+  }
 
   if ((user as { status?: string }).status === "blocked") {
+    console.log("[passwordReset] usuario bloqueado, no se envía mail");
     return;
   }
 
@@ -75,7 +92,11 @@ export async function requestPasswordReset(emailNormalizado: string): Promise<vo
         <p><a href="${link}">Restablecer contraseña</a></p>
         <p>Si no pediste el cambio, podés ignorar este correo. Tu clave no se modifica mientras no uses el enlace.</p>
     `.trim();
-    await enviarMailResend(email, subject, html);
+    const target = (user.email ?? email).trim();
+    const ok = await enviarMailResend(target, subject, html);
+    if (!ok) {
+      console.error("[passwordReset] falló el envío; revisá RESEND_API_KEY, RESEND_FROM (dominio verificado) y logs de Resend arriba");
+    }
   } else {
     console.log("[passwordReset] RESEND_API_KEY no configurada — enlace (solo desarrollo):", link);
   }
