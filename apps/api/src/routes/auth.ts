@@ -9,6 +9,7 @@ import {
   revokeRefreshValue,
   validateRefreshValue,
 } from "../services/refreshTokenService";
+import { requestPasswordReset, resetPasswordWithToken } from "../services/passwordResetService";
 
 export const authRouter = Router();
 
@@ -378,6 +379,48 @@ authRouter.post("/logout", async (req: Request, res: Response) => {
   await revokeRefreshValue(raw);
   res.clearCookie(REFRESH_COOKIE, { ...refreshCookieOptions(), maxAge: 0 });
   res.json({ ok: true });
+});
+
+// POST /api/auth/forgot-password
+authRouter.post("/forgot-password", async (req: Request, res: Response) => {
+  const { email } = (req.body ?? {}) as { email?: string };
+  if (!email || typeof email !== "string") {
+    res.status(400).json({ error: "Indicá un email" });
+    return;
+  }
+  const emailNorm = email.trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailNorm)) {
+    res.status(400).json({ error: "Formato de email inválido" });
+    return;
+  }
+  try {
+    await requestPasswordReset(emailNorm);
+    res.json({
+      ok:      true,
+      message: "Si el email está registrado, te enviaremos un enlace en unos minutos.",
+    });
+  } catch (err) {
+    console.error("[auth/forgot-password]", err);
+    res.json({
+      ok:      true,
+      message: "Si el email está registrado, te enviaremos un enlace en unos minutos.",
+    });
+  }
+});
+
+// POST /api/auth/reset-password
+authRouter.post("/reset-password", async (req: Request, res: Response) => {
+  const { token, password } = (req.body ?? {}) as { token?: string; password?: string };
+  if (!token || typeof token !== "string" || !password) {
+    res.status(400).json({ error: "Token y contraseña son obligatorios" });
+    return;
+  }
+  const result = await resetPasswordWithToken(token, password);
+  if ("error" in result) {
+    res.status(400).json({ error: result.error });
+    return;
+  }
+  res.json({ ok: true, message: "Contraseña actualizada. Podés iniciar sesión con la nueva clave." });
 });
 
 // GET /api/auth/me

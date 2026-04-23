@@ -4,7 +4,9 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
-    "start": "node dist/index.js"
+    "start": "node dist/index.js",
+    "smoke:limits": "tsx scripts/verify-rate-limits.ts",
+    "smoke:limits:all": "tsx scripts/verify-rate-limits.ts --all"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.90.0",
@@ -19,7 +21,8 @@
     "imap-simple": "^5.1.0",
     "jsonwebtoken": "^9.0.3",
     "mailparser": "^3.9.8",
-    "multer": "^2.1.1"
+    "multer": "^2.1.1",
+    "resend": "^6.12.2"
   },
   "devDependencies": {
     "@types/bcryptjs": "^3.0.0",
