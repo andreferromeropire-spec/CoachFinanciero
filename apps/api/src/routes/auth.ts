@@ -406,17 +406,11 @@ authRouter.post("/forgot-password", async (req: Request, res: Response) => {
     return;
   }
   try {
-    await requestPasswordReset(emailNorm);
-    res.json({
-      ok:      true,
-      message: "Si el email está registrado, te enviaremos un enlace en unos minutos.",
-    });
+    const outcome = await requestPasswordReset(emailNorm);
+    res.json({ outcome });
   } catch (err) {
     console.error("[auth/forgot-password]", err);
-    res.json({
-      ok:      true,
-      message: "Si el email está registrado, te enviaremos un enlace en unos minutos.",
-    });
+    res.status(500).json({ error: "Error al procesar el pedido" });
   }
 });
 

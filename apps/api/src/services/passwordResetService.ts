@@ -38,6 +38,13 @@ async function enviarMailResend(to: string, subject: string, html: string): Prom
   return true;
 }
 
+export type RequestPasswordResetOutcome =
+  | "email_sent"
+  | "not_registered"
+  | "account_blocked"
+  | "send_failed"
+  | "resend_unconfigured";
+
 export function hashPasswordResetValue(raw: string): string {
   return createHash("sha256").update(raw, "utf8").digest("hex");
 }
@@ -47,27 +54,25 @@ export function generatePasswordResetValue(): string {
 }
 
 /**
- * Crea/actualiza token (hash) y, si Resend está configurado, manda el mail. Si no, loguea el enlace en consola.
+ * Crea/actualiza token (hash) e intenta enviar mail con Resend, o deja trazas en consola (sin clave).
  */
-export async function requestPasswordReset(emailNormalizado: string): Promise<void> {
+export async function requestPasswordReset(
+  emailNormalizado: string,
+): Promise<RequestPasswordResetOutcome> {
   const email = emailNormalizado.trim().toLowerCase();
-  if (!email) return;
+  if (!email) return "not_registered";
 
-  // Mismo email con distinta mayúscula: el registro guarda el string tal cual; en PostgreSQL
-  // el match es case-sensitive, así que findUnique({ email: lower }) fallaba y nunca se enviaba mail.
   const user = await prisma.user.findFirst({
     where: { email: { equals: email, mode: "insensitive" } },
   });
   if (!user) {
-    console.log(
-      "[passwordReset] no hay usuario con ese email (comparación sin distinguir mayúsculas); se responde 200 genérico al cliente",
-    );
-    return;
+    console.log("[passwordReset] ningún usuario con ese email");
+    return "not_registered";
   }
 
   if ((user as { status?: string }).status === "blocked") {
     console.log("[passwordReset] usuario bloqueado, no se envía mail");
-    return;
+    return "account_blocked";
   }
 
   const raw = generatePasswordResetValue();
@@ -96,10 +101,13 @@ export async function requestPasswordReset(emailNormalizado: string): Promise<vo
     const ok = await enviarMailResend(target, subject, html);
     if (!ok) {
       console.error("[passwordReset] falló el envío; revisá RESEND_API_KEY, RESEND_FROM (dominio verificado) y logs de Resend arriba");
+      return "send_failed";
     }
-  } else {
-    console.log("[passwordReset] RESEND_API_KEY no configurada — enlace (solo desarrollo):", link);
+    return "email_sent";
   }
+
+  console.log("[passwordReset] RESEND_API_KEY no configurada — enlace (solo desarrollo):", link);
+  return "resend_unconfigured";
 }
 
 export async function resetPasswordWithToken(
