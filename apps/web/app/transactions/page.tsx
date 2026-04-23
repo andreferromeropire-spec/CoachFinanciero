@@ -3,7 +3,7 @@
 import { useState, useCallback } from "react";
 import useSWR from "swr";
 import { useDropzone } from "react-dropzone";
-import { fetcher, apiFetch } from "../../lib/api";
+import { fetcher, apiFetch, fetchWithAuthRetry } from "../../lib/api";
 import { TransactionRow } from "../components/TransactionRow";
 
 const PAGE_SIZE = 20;
@@ -81,10 +81,7 @@ export default function TransactionsPage() {
         const form = new FormData();
         form.append("file", file);
         form.append("provider", csvProvider);
-        const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000"}/api/ingest/csv`,
-          { method: "POST", body: form }
-        );
+        const res = await fetchWithAuthRetry("/api/ingest/csv", { method: "POST", body: form });
         const result = await res.json();
         setUploadResult(result);
         mutate();

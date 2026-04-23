@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 import { formatCurrency, formatDate } from "../../lib/format";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+import { fetchWithAuthRetry } from "../../lib/api";
 
 interface Tx {
   id: string;
@@ -79,9 +78,8 @@ function SharedPopover({
   async function handleMarkShared(sharedWith: number) {
     setLoading(true);
     try {
-      await fetch(`${API_URL}/api/transactions/${tx.id}/shared`, {
+      await fetchWithAuthRetry(`/api/transactions/${tx.id}/shared`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ isShared: true, sharedWith }),
       });
       onUpdate?.();
@@ -96,9 +94,8 @@ function SharedPopover({
     if (isNaN(amt) || amt <= 0) return;
     setLoading(true);
     try {
-      await fetch(`${API_URL}/api/transactions/${tx.id}/shared/settle`, {
+      await fetchWithAuthRetry(`/api/transactions/${tx.id}/shared/settle`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ amountReceived: amt }),
       });
       setSuccess(true);

@@ -9,12 +9,22 @@ export interface AuthRequest extends Request {
 }
 
 /**
- * Middleware de autenticación.
- * - Si hay un JWT válido en Authorization: Bearer <token>, usa ese userId.
- * - Si no hay header, usa "default-user" para mantener compatibilidad
- *   con la instalación single-user mientras no se implemente el login.
+ * Access JWT corto (15m). El refresh vive en cookie httpOnly (ver /api/auth/refresh).
  */
-export function authMiddleware(req: Request, _res: Response, next: NextFunction) {
+export function createAccessToken(userId: string): string {
+  return jwt.sign({ userId, typ: "access" }, JWT_SECRET, { expiresIn: "15m" });
+}
+
+/** @deprecated Usar createAccessToken */
+export function createToken(userId: string): string {
+  return createAccessToken(userId);
+}
+
+/**
+ * - Sin `Authorization`: compat single-user (default-user).
+ * - Con Bearer inválido o vencido: 401 (el front debe llamar POST /api/auth/refresh).
+ */
+export function authMiddleware(req: Request, res: Response, next: NextFunction) {
   const authReq = req as AuthRequest;
 
   const header = req.headers.authorization;
@@ -24,15 +34,12 @@ export function authMiddleware(req: Request, _res: Response, next: NextFunction)
       const payload = jwt.verify(token, JWT_SECRET) as { userId: string };
       authReq.userId = payload.userId;
     } catch {
-      authReq.userId = DEFAULT_USER_ID;
+      res.status(401).json({ error: "Token inválido o expirado", code: "ACCESS_EXPIRED" });
+      return;
     }
   } else {
     authReq.userId = DEFAULT_USER_ID;
   }
 
   next();
-}
-
-export function createToken(userId: string): string {
-  return jwt.sign({ userId }, JWT_SECRET, { expiresIn: "30d" });
 }

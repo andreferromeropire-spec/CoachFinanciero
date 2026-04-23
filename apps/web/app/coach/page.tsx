@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import useSWR from "swr";
-import { fetcher } from "../../lib/api";
+import { fetcher, fetchWithAuthRetry } from "../../lib/api";
 import { formatCurrency } from "../../lib/format";
 
 const SONNET_PREFIX = "__SONNET__:";
@@ -38,8 +38,6 @@ interface Settings {
   sonnetCallsThisMonth: number;
   sonnetCallsLimit: number;
 }
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 
 const QUICK_ACTIONS = [
   "¿Puedo comprar algo de $50.000?",
@@ -139,9 +137,8 @@ export default function CoachPage() {
         .map((m) => ({ role: m.role, content: m.content }));
 
       try {
-        const res = await fetch(`${API_URL}/api/coach/message`, {
+        const res = await fetchWithAuthRetry("/api/coach/message", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             message: trimmed,
             conversationHistory: history.slice(0, -1),

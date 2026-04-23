@@ -1,7 +1,14 @@
 import { Router, Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import { prisma } from "@coach/db";
-import { createToken } from "../middleware/auth";
+import { createAccessToken } from "../middleware/auth";
+import {
+  REFRESH_COOKIE,
+  createRefreshTokenRecord,
+  readRefreshFromCookie,
+  revokeRefreshValue,
+  validateRefreshValue,
+} from "../services/refreshTokenService";
 
 export const authRouter = Router();
 
@@ -9,6 +16,17 @@ const GOOGLE_CLIENT_ID     = process.env.GOOGLE_CLIENT_ID     ?? "";
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET ?? "";
 const GOOGLE_REDIRECT_URI  = process.env.GOOGLE_REDIRECT_URI  ?? "http://localhost:4000/api/auth/google/callback";
 const FRONTEND_URL         = process.env.PUBLIC_WEB_URL       ?? "http://localhost:3000";
+
+function refreshCookieOptions() {
+  const isProd = process.env.NODE_ENV === "production";
+  return {
+    httpOnly: true     as const,
+    secure:   isProd   as boolean,
+    sameSite: (isProd ? "none" : "lax") as "none" | "lax",
+    maxAge:   30 * 24 * 60 * 60 * 1000,
+    path:     "/",
+  };
+}
 
 /**
  * Callback OAuth de Gmail. Preferí definir GOOGLE_REDIRECT_URI como el de login
@@ -70,8 +88,10 @@ authRouter.post("/login", async (req: Request, res: Response) => {
       return;
     }
 
-    const token = createToken(user.id);
-    res.json({ token, user: { id: user.id, email: user.email, name: user.name, isAdmin: user.isAdmin } });
+    const accessToken = createAccessToken(user.id);
+    const refreshRaw  = await createRefreshTokenRecord(user.id, req);
+    res.cookie(REFRESH_COOKIE, refreshRaw, refreshCookieOptions());
+    res.json({ token: accessToken, user: { id: user.id, email: user.email, name: user.name, isAdmin: user.isAdmin } });
   } catch (err) {
     console.error("[auth/login]", err);
     res.status(500).json({ error: "Server error, please try again" });
@@ -115,8 +135,10 @@ authRouter.post("/register", async (req: Request, res: Response) => {
 
     await prisma.userSettings.create({ data: { userId: user.id } });
 
-    const token = createToken(user.id);
-    res.status(201).json({ token, user: { id: user.id, email: user.email, name: user.name, isAdmin: user.isAdmin } });
+    const accessToken = createAccessToken(user.id);
+    const refreshRaw  = await createRefreshTokenRecord(user.id, req);
+    res.cookie(REFRESH_COOKIE, refreshRaw, refreshCookieOptions());
+    res.status(201).json({ token: accessToken, user: { id: user.id, email: user.email, name: user.name, isAdmin: user.isAdmin } });
   } catch (err) {
     console.error("[auth/register]", err);
     res.status(500).json({ error: "Server error, please try again" });
@@ -312,12 +334,50 @@ authRouter.get("/google/callback", async (req: Request, res: Response) => {
       return;
     }
 
-    const token = createToken(user.id);
-    res.redirect(`${FRONTEND_URL}/auth/callback?token=${encodeURIComponent(token)}`);
+    const accessToken = createAccessToken(user.id);
+    const refreshRaw  = await createRefreshTokenRecord(user.id, req);
+    res.cookie(REFRESH_COOKIE, refreshRaw, refreshCookieOptions());
+    res.redirect(`${FRONTEND_URL}/auth/callback?token=${encodeURIComponent(accessToken)}`);
   } catch (err) {
     console.error("[auth/google/callback]", err);
     res.redirect(`${FRONTEND_URL}/login?error=google_error`);
   }
+});
+
+// POST /api/auth/refresh — emite access nuevo usando cookie de refresh
+authRouter.post("/refresh", async (req: Request, res: Response) => {
+  const raw   = readRefreshFromCookie(req);
+  const userId = await validateRefreshValue(raw);
+  if (!userId) {
+    res.status(401).json({ error: "Sesión expirada. Iniciá sesión de nuevo.", code: "REFRESH_INVALID" });
+    return;
+  }
+  try {
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      res.status(401).json({ error: "Usuario no encontrado", code: "USER_GONE" });
+      return;
+    }
+    if ((user as { status?: string }).status === "blocked") {
+      res.status(403).json({ error: "Account blocked" });
+      return;
+    }
+    res.json({
+      token: createAccessToken(user.id),
+      user:  { id: user.id, email: user.email, name: user.name, isAdmin: user.isAdmin },
+    });
+  } catch (err) {
+    console.error("[auth/refresh]", err);
+    res.status(500).json({ error: "Error al renovar la sesión" });
+  }
+});
+
+// POST /api/auth/logout — revoca refresh y borra cookie
+authRouter.post("/logout", async (req: Request, res: Response) => {
+  const raw = readRefreshFromCookie(req);
+  await revokeRefreshValue(raw);
+  res.clearCookie(REFRESH_COOKIE, { ...refreshCookieOptions(), maxAge: 0 });
+  res.json({ ok: true });
 });
 
 // GET /api/auth/me

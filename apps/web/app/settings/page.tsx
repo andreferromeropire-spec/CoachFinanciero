@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import useSWR from "swr";
-import { fetcher, apiFetch } from "../../lib/api";
+import { fetcher, apiFetch, fetchWithAuthRetry } from "../../lib/api";
 import { formatCurrency } from "../../lib/format";
 import { OnboardingWizard } from "../components/onboarding/OnboardingWizard";
 
@@ -107,11 +107,9 @@ export default function SettingsPage() {
     setImportLog(prev => ({ ...prev, [accountId]: "Iniciando importación…" }));
     setImportResult(prev => { const n = { ...prev }; delete n[accountId]; return n; });
 
-    const token = typeof window !== "undefined" ? localStorage.getItem("coach_token") ?? "" : "";
     try {
-      const resp = await fetch(`${API_URL}/api/emails/${accountId}/import`, {
+      const resp = await fetchWithAuthRetry(`/api/emails/${accountId}/import`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ since: importingSince, maxEmails: gmailMaxEmails }),
       });
       const reader = resp.body?.getReader();
@@ -165,9 +163,8 @@ export default function SettingsPage() {
     setImapProgress(null);
 
     try {
-      const resp = await fetch(`${API_URL}/api/ingest/imap/history`, {
+      const resp = await fetchWithAuthRetry("/api/ingest/imap/history", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ since: importingSince }),
       });
 

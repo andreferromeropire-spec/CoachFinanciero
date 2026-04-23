@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { logoutUser } from "../../lib/api";
 
 const NAV = [
   {
@@ -48,8 +49,8 @@ export function BottomNav() {
   const pathname = usePathname();
   const router   = useRouter();
 
-  function handleLogout() {
-    localStorage.removeItem("coach_token");
+  async function handleLogout() {
+    await logoutUser();
     router.push("/login");
   }
 

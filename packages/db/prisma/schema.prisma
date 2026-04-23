@@ -85,6 +85,23 @@ model User {
   emailIngests    EmailIngest[]
   settings        UserSettings[]
   connectedEmails ConnectedEmail[]
+  refreshTokens   RefreshToken[]
+}
+
+// Sesión persistente: refresh en cookie httpOnly, access JWT corto (masterplan §4.1)
+model RefreshToken {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash  String
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  userAgent  String?
+  ip         String?
+  createdAt  DateTime  @default(now())
+
+  @@index([userId])
+  @@index([tokenHash])
 }
 
 // ── Account ───────────────────────────────────────────────────────────────────

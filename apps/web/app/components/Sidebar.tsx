@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import useSWR from "swr";
-import { fetcher } from "../../lib/api";
+import { fetcher, logoutUser } from "../../lib/api";
 
 interface NotifData { unreadCount: number }
 
@@ -58,8 +58,8 @@ export function Sidebar() {
   const { data: notifData } = useSWR<NotifData>("/api/notifications", fetcher, { refreshInterval: 30_000 });
   const unread = notifData?.unreadCount ?? 0;
 
-  function handleLogout() {
-    localStorage.removeItem("coach_token");
+  async function handleLogout() {
+    await logoutUser();
     router.push("/login");
   }
 

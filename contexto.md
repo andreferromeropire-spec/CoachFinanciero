@@ -3,6 +3,8 @@
 **Última actualización:** abril 2026  
 Este archivo describe el **alcance real** del código hoy, la **visión** hacia un producto “autopilot” financiero, y un **plan por fases** con pasos accionables. Los ítems **ya implementados** van con `[x]` y ~~tachados~~.
 
+> **Prioridad y orden del MVP:** La fuente canónica es **`masterplan.md`** (en particular **§4 buenas prácticas** y **§6 orden de implementación**). Si el texto de este `contexto.md` entrara en conflicto con el master plan, manda el plan maestro.
+
 ---
 
 ## 1. Alcance actual (qué hace el sistema hoy)
@@ -47,7 +49,7 @@ Monorepo: **`apps/web`** (Next.js 14), **`apps/api`** (Express + TS), **`package
 | ~~Configuración (cuentas, parámetros, Gmail conectado, import, onboarding)~~ | `[x]` |
 | ~~Historia financiera: analytics mensual/anual/trends; pestañas de años ampliadas (API)~~ | `[x]` |
 | ~~Coach IA (ruta API + uso en web; límites Sonnet/Haiku en settings)~~ | `[x]` |
-| ~~Auth: login/registro JWT, OAuth Google login, Gmail OAuth separado~~ | `[x]` |
+| ~~Auth: access JWT 15m + **refresh 30d** (cookie `coach_rt` httpOnly, tabla `RefreshToken`, `POST /api/auth/refresh` y `logout`); login/registro, OAuth Google, Gmail OAuth~~ | `[x]` |
 | PWA / offline | `[ ]` parcial (`next-pwa` existe; alcance UX no auditado aquí) |
 
 ### 1.4 Lo que **no** es hoy (importante)

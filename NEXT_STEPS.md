@@ -1,4 +1,27 @@
-# NEXT_STEPS — Prompt 3
+# NEXT_STEPS
+
+## MVP — alineado a `masterplan.md` §6 (Fase 1)
+
+`masterplan.md` es la fuente de verdad del orden; los ítems 1–15 de **Fase 1** son el MVP personal.
+
+| # | Ítem (resumen) | Estado |
+|---|----------------|--------|
+| 1 | **Sesión persistente** — `RefreshToken` en DB, access 15m, refresh en cookie `coach_rt` (httpOnly, `SameSite=none` + `secure` en prod, `lax` en dev), `POST /api/auth/refresh`, `POST /api/auth/logout`, web con `credentials: "include"` + refresh en 401 | hecho (correr `prisma migrate` en el entorno donde falte) |
+| 2 | **Helmet + rate limiting** | siguiente paso lógico |
+| 3 | **Reset de contraseña** (Resend + token) | pendiente |
+| 4 | **Verificación de email** | pendiente |
+| 5 | **Toasts + Error boundary** | pendiente |
+| 6 | **formatMoney / formatDate** centralizados | pendiente |
+| 7+ | `isInternalTransfer` / `isIgnored`, `ExchangeRate`, `LearnedRule`, matches, etc. (ver plan) | pendiente |
+
+### Acción inmediata sugerida
+
+- Aplicar migración `RefreshToken` en la DB de despliegue: `npx prisma migrate deploy` (desde `packages/db` o vía el pipeline de Railway).  
+- Implementar **Helmet** y **express-rate-limit** con los umbrales del `masterplan.md` §4.5.
+
+---
+
+## Archivo (Prompt 2) — completado, referencia
 
 ## Estado actual (Prompt 2 completado)
 

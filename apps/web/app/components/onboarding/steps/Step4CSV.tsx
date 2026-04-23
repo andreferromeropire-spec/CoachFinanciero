@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { useDropzone } from "react-dropzone";
+import { fetchWithAuthRetry } from "../../../../lib/api";
 
 interface Props {
   onNext: () => void;
@@ -28,8 +29,6 @@ export function Step4CSV({ onNext, onSkip }: Props) {
   const [result, setResult] = useState<UploadResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
-
   const onDrop = useCallback(async (files: File[]) => {
     const file = files[0];
     if (!file || !selectedBank) return;
@@ -45,11 +44,9 @@ export function Step4CSV({ onNext, onSkip }: Props) {
       formData.append("provider", selectedBank);
 
       setProgress(50);
-      const token = typeof window !== "undefined" ? localStorage.getItem("coach_token") : null;
-      const res = await fetch(`${API}/api/ingest/csv`, {
+      const res = await fetchWithAuthRetry("/api/ingest/csv", {
         method: "POST",
         body: formData,
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
 
       setProgress(90);
@@ -66,7 +63,7 @@ export function Step4CSV({ onNext, onSkip }: Props) {
     } finally {
       setUploading(false);
     }
-  }, [selectedBank, API]);
+  }, [selectedBank]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
