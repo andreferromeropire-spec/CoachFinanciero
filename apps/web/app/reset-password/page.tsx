@@ -6,6 +6,9 @@ import { useSearchParams, useRouter } from "next/navigation";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 
+const SHELL =
+  "w-full flex-1 min-w-0 min-h-screen bg-page flex items-center justify-center p-6";
+
 function ResetForm() {
   const sp     = useSearchParams();
   const token  = sp.get("token") ?? "";
@@ -57,8 +60,8 @@ function ResetForm() {
 
   if (!token) {
     return (
-      <div className="min-h-screen bg-page flex items-center justify-center p-6">
-        <div className="text-center max-w-sm space-y-3">
+      <div className={SHELL}>
+        <div className="w-full max-w-sm mx-auto text-center space-y-3">
           <h1 className="text-lg font-bold text-hi">Enlace inválido</h1>
           <p className="text-mid text-sm">Abrí el enlace del correo o pedí uno nuevo en recuperar contraseña.</p>
           <Link href="/forgot-password" className="text-teal font-medium">Pedir enlace otra vez</Link>
@@ -69,8 +72,8 @@ function ResetForm() {
 
   if (ok) {
     return (
-      <div className="min-h-screen bg-page flex items-center justify-center p-6">
-        <div className="text-center max-w-sm">
+      <div className={SHELL}>
+        <div className="w-full max-w-sm mx-auto text-center">
           <p className="text-hi font-semibold">Listo, contraseña actualizada.</p>
           <p className="text-mid text-sm mt-2">Te llevamos al inicio de sesión…</p>
         </div>
@@ -79,8 +82,8 @@ function ResetForm() {
   }
 
   return (
-    <div className="min-h-screen bg-page flex items-center justify-center p-6">
-      <div className="w-full max-w-sm space-y-4">
+    <div className={SHELL}>
+      <div className="w-full max-w-md mx-auto space-y-4">
         <h1 className="text-2xl font-bold text-hi text-center">Nueva contraseña</h1>
         <p className="text-mid text-sm text-center">Elegí una clave de al menos 8 caracteres.</p>
         <form onSubmit={onSubmit} className="card p-6 space-y-4">
@@ -123,7 +126,7 @@ function ResetForm() {
 
 function Fallback() {
   return (
-    <div className="min-h-screen bg-page flex items-center justify-center p-6 text-mid text-sm">
+    <div className={`${SHELL} text-mid text-sm`}>
       Cargando…
     </div>
   );

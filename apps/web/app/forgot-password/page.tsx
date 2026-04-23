@@ -5,6 +5,10 @@ import Link from "next/link";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 
+/** Llena el ancho del <body> (flex) para que justify-center centre el bloque en PC */
+const SHELL =
+  "w-full flex-1 min-w-0 min-h-screen bg-page flex items-center justify-center p-6";
+
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [sending, setSending]   = useState(false);
@@ -40,8 +44,8 @@ export default function ForgotPasswordPage() {
 
   if (done) {
     return (
-      <div className="min-h-screen bg-page flex items-center justify-center p-6">
-        <div className="text-center max-w-sm space-y-4">
+      <div className={SHELL}>
+        <div className="w-full max-w-sm mx-auto text-center space-y-4">
           <div className="w-14 h-14 rounded-2xl bg-success/10 border border-success/20 flex items-center justify-center mx-auto text-2xl">
             ✉️
           </div>
@@ -60,8 +64,8 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen bg-page flex items-center justify-center p-6">
-      <div className="w-full max-w-sm space-y-6">
+    <div className={SHELL}>
+      <div className="w-full max-w-md mx-auto space-y-6">
         <div className="text-center space-y-2">
           <div className="w-14 h-14 rounded-2xl bg-teal/10 border border-teal/20 flex items-center justify-center mx-auto">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#14B8A6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
