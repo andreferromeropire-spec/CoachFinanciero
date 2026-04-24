@@ -8,8 +8,8 @@
 |---|----------------|--------|
 | 1 | **Sesión persistente** — `RefreshToken` en DB, access 15m, refresh en cookie `coach_rt` (httpOnly, `SameSite=none` + `secure` en prod, `lax` en dev), `POST /api/auth/refresh`, `POST /api/auth/logout`, web con `credentials: "include"` + refresh en 401 | hecho (ver SQL manual abajo si no usás `migrate deploy`) |
 | 2 | **Helmet + rate limiting** — `helmet()`, `trust proxy`, límites: auth 10/min, coach 20/min, ingest 50/h, global 200/min | hecho |
-| 3 | **Reset de contraseña** — `passwordResetToken` (hash) + `passwordResetExpiry` 1h, Resend, `POST /forgot-password`, `POST /reset-password`, web `/forgot-password` y `/reset-password` | hecho (ver `RESEND_*` en API y SQL abajo) |
-| 4 | **Verificación de email** | siguiente paso lógico |
+| 3 | **Reset de contraseña** — `passwordResetToken` (hash) + `passwordResetExpiry` 1h, Resend, `POST /forgot-password`, `POST /reset-password`, web `/forgot-password` y `/reset-password` | **hecho** (prod: `RESEND_API_KEY` + variable correcta `RESEND_FROM` en el servicio del API, no `SEND_FROM`) |
+| 4 | **Verificación de email** — 6 dígitos, 10 min, `emailVerifiedAt` + Resend, `POST` send/verify, `/verify-email` | hecho en código; en prod: `prisma migrate deploy` (`20260425120000_email_verification`) y probar flujo |
 | 5 | **Toasts + Error boundary** | pendiente |
 | 6 | **formatMoney / formatDate** centralizados | pendiente |
 | 7+ | `isInternalTransfer` / `isIgnored`, `ExchangeRate`, `LearnedRule`, matches, etc. (ver plan) | pendiente |
@@ -29,9 +29,11 @@ npm run smoke:limits:all
 
 Otra consola, antes: `cd apps/api && npm run dev`.
 
-### Acción inmediata sugerida
+### Acción inmediata
 
-- **Verificación de email** (6 dígitos) según `masterplan.md` §6 ítem 4, y toasts + error boundary (ítem 5).
+- [x] Reset de contraseña y `RESEND_FROM` correcto (no `SEND_FROM`) en el API.
+- [x] **Verificación de email** en código: migración `20260425120000`, rutas, `/verify-email`, registro/ login/Google devuelven `emailVerifiedAt`.
+- [ ] En Railway: `migrate deploy` (o SQL manual de arriba) + probar email + código. Luego: **toasts** (ítem 5) y `formatMoney` (ítem 6).
 
 ### SQL manual en Railway (columnas reset de contraseña, ítem 3)
 
@@ -44,6 +46,18 @@ CREATE INDEX IF NOT EXISTS "User_passwordResetToken_idx" ON "User"("passwordRese
 ```
 
 Luego: `npx prisma migrate resolve --applied 20260424120000_password_reset` (en `packages/db` con `DATABASE_URL` de Railway).
+
+### SQL manual en Railway (verificación de email, ítem 4)
+
+Solo si no aplica `migrate deploy` y faltan columnas:
+
+```sql
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "emailVerifiedAt" TIMESTAMP(3);
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "emailVerifyCodeHash" TEXT;
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "emailVerifyExpires" TIMESTAMP(3);
+```
+
+Luego, si aplica: `npx prisma migrate resolve --applied 20260425120000_email_verification` (en `packages/db`).
 
 ### SQL manual en Railway (tabla `RefreshToken`)
 

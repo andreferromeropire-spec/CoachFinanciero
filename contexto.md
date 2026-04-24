@@ -51,7 +51,8 @@ Monorepo: **`apps/web`** (Next.js 14), **`apps/api`** (Express + TS), **`package
 | ~~Coach IA (ruta API + uso en web; límites Sonnet/Haiku en settings)~~ | `[x]` |
 | ~~Auth: access JWT 15m + **refresh 30d** (cookie `coach_rt` httpOnly, tabla `RefreshToken`, `POST /api/auth/refresh` y `logout`); login/registro, OAuth Google, Gmail OAuth~~ | `[x]` |
 | ~~API: **Helmet** + **rate limit** (auth 10/min, coach 20/min, ingest 50/h, global 200/min)~~ | `[x]` |
-| ~~**Recuperar contraseña** (Resend, token 1h en hash, `POST` forgot/reset, pages forgot + reset)~~ | `[x]` |
+| ~~**Recuperar contraseña** (Resend, `RESEND_FROM` en el API, forgot/reset)~~ | `[x]` |
+| **Verificación de email** (6 dígitos, migración, `/verify-email`, `POST` send/verify) | `[~]` (código listo; migrar DB en prod) |
 | PWA / offline | `[ ]` parcial (`next-pwa` existe; alcance UX no auditado aquí) |
 
 ### 1.4 Lo que **no** es hoy (importante)

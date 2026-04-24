@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+
 export default function AuthCallbackPage() {
   const router = useRouter();
   const [msg, setMsg] = useState("Iniciando sesión con Google…");
@@ -14,7 +16,21 @@ export default function AuthCallbackPage() {
 
     if (token) {
       localStorage.setItem("coach_token", token);
-      router.replace("/");
+      (async () => {
+        try {
+          const r = await fetch(`${API_URL}/api/auth/me`, { headers: { Authorization: `Bearer ${token}` } });
+          if (r.ok) {
+            const u = (await r.json()) as { emailVerifiedAt?: string | null };
+            if (!u.emailVerifiedAt) {
+              router.replace("/verify-email");
+              return;
+            }
+          }
+        } catch {
+          /* a la app igual */
+        }
+        router.replace("/");
+      })();
     } else {
       const msgs: Record<string, string> = {
         google_cancelado:   "Cancelaste el inicio con Google.",

@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { Sidebar } from "./Sidebar";
 import { BottomNav } from "./BottomNav";
 
-const AUTH_PATHS = ["/login", "/register", "/waitlist-pending", "/forgot-password", "/reset-password"];
+const AUTH_PATHS = ["/login", "/register", "/waitlist-pending", "/forgot-password", "/reset-password", "/auth"];
 
 export function ClientShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();

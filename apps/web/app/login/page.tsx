@@ -89,11 +89,15 @@ export default function LoginPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ name: name.trim(), email, password }),
         });
-        let data: { token?: string; error?: string } = {};
+        let data: { token?: string; error?: string; user?: { emailVerifiedAt?: string | null } } = {};
         try { data = await res.json(); } catch { /* no-JSON */ }
         if ((res.status === 201 || res.ok) && data.token) {
           localStorage.setItem("coach_token", data.token);
-          router.push("/");
+          if (data.user && !data.user.emailVerifiedAt) {
+            router.push("/verify-email");
+          } else {
+            router.push("/");
+          }
         } else if (res.status === 409) {
           setError("Ese email ya tiene una cuenta. Iniciá sesión.");
         } else if (res.status === 500) {
@@ -115,11 +119,15 @@ export default function LoginPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email, password }),
         });
-        let data: { token?: string; error?: string; waitlist?: boolean } = {};
+        let data: { token?: string; error?: string; waitlist?: boolean; user?: { emailVerifiedAt?: string | null } } = {};
         try { data = await res.json(); } catch { /* no-JSON */ }
         if (res.ok && data.token) {
           localStorage.setItem("coach_token", data.token);
-          router.push("/");
+          if (data.user && !data.user.emailVerifiedAt) {
+            router.push("/verify-email");
+          } else {
+            router.push("/");
+          }
         } else if (res.status === 403 && data.waitlist) {
           setError("Tu cuenta está pendiente de aprobación");
         } else if (res.status === 403) {

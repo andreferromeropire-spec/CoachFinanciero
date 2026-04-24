@@ -1,7 +1,7 @@
 import { Router, Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import { prisma } from "@coach/db";
-import { createAccessToken } from "../middleware/auth";
+import { createAccessToken, getUserIdFromAccessToken } from "../middleware/auth";
 import {
   REFRESH_COOKIE,
   createRefreshTokenRecord,
@@ -10,13 +10,25 @@ import {
   validateRefreshValue,
 } from "../services/refreshTokenService";
 import { requestPasswordReset, resetPasswordWithToken } from "../services/passwordResetService";
-
+import { sendEmailVerification, confirmEmailCode } from "../services/emailVerificationService";
 export const authRouter = Router();
 
 const GOOGLE_CLIENT_ID     = process.env.GOOGLE_CLIENT_ID     ?? "";
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET ?? "";
 const GOOGLE_REDIRECT_URI  = process.env.GOOGLE_REDIRECT_URI  ?? "http://localhost:4000/api/auth/google/callback";
 const FRONTEND_URL         = process.env.PUBLIC_WEB_URL       ?? "http://localhost:3000";
+
+function sessionUserFromDb(u: {
+  id: string; email: string; name: string | null; isAdmin: boolean; emailVerifiedAt?: Date | null;
+}) {
+  return {
+    id:              u.id,
+    email:           u.email,
+    name:            u.name,
+    isAdmin:         u.isAdmin,
+    emailVerifiedAt: u.emailVerifiedAt ? u.emailVerifiedAt.toISOString() : null,
+  };
+}
 
 function refreshCookieOptions() {
   const isProd = process.env.NODE_ENV === "production";
@@ -96,7 +108,7 @@ authRouter.post("/login", async (req: Request, res: Response) => {
     const accessToken = createAccessToken(user.id);
     const refreshRaw  = await createRefreshTokenRecord(user.id, req);
     res.cookie(REFRESH_COOKIE, refreshRaw, refreshCookieOptions());
-    res.json({ token: accessToken, user: { id: user.id, email: user.email, name: user.name, isAdmin: user.isAdmin } });
+    res.json({ token: accessToken, user: sessionUserFromDb(user) });
   } catch (err) {
     console.error("[auth/login]", err);
     res.status(500).json({ error: "Server error, please try again" });
@@ -147,7 +159,10 @@ authRouter.post("/register", async (req: Request, res: Response) => {
     const accessToken = createAccessToken(user.id);
     const refreshRaw  = await createRefreshTokenRecord(user.id, req);
     res.cookie(REFRESH_COOKIE, refreshRaw, refreshCookieOptions());
-    res.status(201).json({ token: accessToken, user: { id: user.id, email: user.email, name: user.name, isAdmin: user.isAdmin } });
+    void sendEmailVerification(user.id).catch((e) => {
+      console.error("[auth/register] verificación de email", e);
+    });
+    res.status(201).json({ token: accessToken, user: sessionUserFromDb(user) });
   } catch (err) {
     console.error("[auth/register]", err);
     res.status(500).json({ error: "Server error, please try again" });
@@ -339,6 +354,9 @@ authRouter.get("/google/callback", async (req: Request, res: Response) => {
         },
       });
       await prisma.userSettings.create({ data: { userId: user.id } });
+      void sendEmailVerification(user.id).catch((e) => {
+        console.error("[auth/google/callback] verificación de email", e);
+      });
     }
 
     const status = (user as { status?: string }).status;
@@ -375,10 +393,7 @@ authRouter.post("/refresh", async (req: Request, res: Response) => {
       res.status(403).json({ error: "Account blocked" });
       return;
     }
-    res.json({
-      token: createAccessToken(user.id),
-      user:  { id: user.id, email: user.email, name: user.name, isAdmin: user.isAdmin },
-    });
+    res.json({ token: createAccessToken(user.id), user: sessionUserFromDb(user) });
   } catch (err) {
     console.error("[auth/refresh]", err);
     res.status(500).json({ error: "Error al renovar la sesión" });
@@ -429,6 +444,46 @@ authRouter.post("/reset-password", async (req: Request, res: Response) => {
   res.json({ ok: true, message: "Contraseña actualizada. Podés iniciar sesión con la nueva clave." });
 });
 
+// POST /api/auth/send-verification-email — requiere Bearer; genera 6 dígitos y envía por Resend
+authRouter.post("/send-verification-email", async (req: Request, res: Response) => {
+  const userId = getUserIdFromAccessToken(req);
+  if (!userId) {
+    res.status(401).json({ error: "Necesitás iniciar sesión" });
+    return;
+  }
+  try {
+    const r = await sendEmailVerification(userId);
+    if (r === "no_user") { res.status(404).json({ error: "Usuario no encontrado" }); return; }
+    if (r === "already") { res.json({ ok: true, outcome: "already" }); return; }
+    if (r === "unconfigured") { res.json({ ok: true, outcome: "unconfigured" }); return; }
+    if (r === "send_failed") { res.json({ ok: false, outcome: "send_failed" }); return; }
+    res.json({ ok: true, outcome: "sent" });
+  } catch (err) {
+    console.error("[auth/send-verification-email]", err);
+    res.status(500).json({ error: "Error al enviar el correo" });
+  }
+});
+
+// POST /api/auth/verify-email-code — requiere Bearer; body: { "code": "123456" }
+authRouter.post("/verify-email-code", async (req: Request, res: Response) => {
+  const userId = getUserIdFromAccessToken(req);
+  if (!userId) {
+    res.status(401).json({ error: "Necesitás iniciar sesión" });
+    return;
+  }
+  const { code } = (req.body ?? {}) as { code?: string };
+  if (!code || typeof code !== "string") {
+    res.status(400).json({ error: "Indicá el código de 6 dígitos" });
+    return;
+  }
+  const r = await confirmEmailCode(userId, code);
+  if (r === "bad_code") { res.status(400).json({ error: "Código incorrecto" }); return; }
+  if (r === "expired") { res.status(400).json({ error: "Código vencido. Pedí uno nuevo." }); return; }
+  if (r === "already") { res.json({ ok: true, already: true }); return; }
+  if (r === "no_user") { res.status(404).json({ error: "Usuario no encontrado" }); return; }
+  res.json({ ok: true });
+});
+
 // GET /api/auth/me
 authRouter.get("/me", async (req: Request, res: Response) => {
   const header = req.headers.authorization;
@@ -442,10 +497,13 @@ authRouter.get("/me", async (req: Request, res: Response) => {
     const payload = jwt.default.verify(token, process.env.JWT_SECRET ?? "coach-financiero-dev-secret") as { userId: string };
     const user = await prisma.user.findUnique({
       where: { id: payload.userId },
-      select: { id: true, email: true, name: true, isAdmin: true, status: true },
+      select: { id: true, email: true, name: true, isAdmin: true, status: true, emailVerifiedAt: true },
     });
     if (!user) { res.status(404).json({ error: "User not found" }); return; }
-    res.json(user);
+    res.json({
+      ...user,
+      emailVerifiedAt: user.emailVerifiedAt ? user.emailVerifiedAt.toISOString() : null,
+    });
   } catch {
     res.status(401).json({ error: "Invalid token" });
   }

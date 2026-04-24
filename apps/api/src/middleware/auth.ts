@@ -43,3 +43,18 @@ export function authMiddleware(req: Request, res: Response, next: NextFunction) 
 
   next();
 }
+
+/**
+ * UserId del access JWT (header Authorization). No confundir con `authMiddleware` (default-user).
+ * Para rutas bajo `/api/auth` que requieren sesión real.
+ */
+export function getUserIdFromAccessToken(req: Request): string | null {
+  const h = req.headers.authorization;
+  if (!h?.startsWith("Bearer ")) return null;
+  try {
+    const p = jwt.verify(h.slice(7), JWT_SECRET) as { userId: string };
+    return p.userId ?? null;
+  } catch {
+    return null;
+  }
+}
