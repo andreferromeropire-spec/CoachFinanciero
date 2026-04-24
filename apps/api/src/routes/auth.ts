@@ -159,9 +159,7 @@ authRouter.post("/register", async (req: Request, res: Response) => {
     const accessToken = createAccessToken(user.id);
     const refreshRaw  = await createRefreshTokenRecord(user.id, req);
     res.cookie(REFRESH_COOKIE, refreshRaw, refreshCookieOptions());
-    void sendEmailVerification(user.id).catch((e) => {
-      console.error("[auth/register] verificación de email", e);
-    });
+    // El mail con el código se envía al abrir /verify-email (también cuentas ya registradas sin verificar)
     res.status(201).json({ token: accessToken, user: sessionUserFromDb(user) });
   } catch (err) {
     console.error("[auth/register]", err);
@@ -354,9 +352,6 @@ authRouter.get("/google/callback", async (req: Request, res: Response) => {
         },
       });
       await prisma.userSettings.create({ data: { userId: user.id } });
-      void sendEmailVerification(user.id).catch((e) => {
-        console.error("[auth/google/callback] verificación de email", e);
-      });
     }
 
     const status = (user as { status?: string }).status;

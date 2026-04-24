@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -22,6 +22,8 @@ export default function VerifyEmailPage() {
   const [error, setError]       = useState("");
   const [done, setDone]         = useState(false);
   const [unconfigured, setUn]   = useState(false);
+  const [bootMessage, setBootMessage] = useState("");
+  const bootSendOnce = useRef(false);
 
   useEffect(() => {
     if (!getToken()) {
@@ -29,43 +31,73 @@ export default function VerifyEmailPage() {
     }
   }, [router]);
 
-  const sendCode = useCallback(async () => {
-    const t = getToken();
-    if (!t) {
-      setError("Sesión no encontrada. Iniciá sesión de nuevo.");
-      return;
-    }
-    setError("");
-    setResend(true);
-    try {
-      const r = await fetch(`${API_URL}/api/auth/send-verification-email`, {
-        method:  "POST",
-        headers: { Authorization: `Bearer ${t}`, "Content-Type": "application/json" },
-      });
-      const d = (await r.json().catch(() => ({}))) as { outcome?: string; error?: string; ok?: boolean };
-      if (r.status === 401) {
-        setError("Sesión vencida. Iniciá sesión de nuevo.");
+  /** Pide un código; fromBoot: primer envío al abrir (usuarios viejos sin verificar; ref evita 2× en React Strict) */
+  const sendCode = useCallback(
+    async (fromBoot = false) => {
+      const t = getToken();
+      if (!t) {
+        setError("Sesión no encontrada. Iniciá sesión de nuevo.");
         return;
       }
-      if (d.outcome === "unconfigured") {
-        setUn(true);
-        setError("Falta RESEND en el servidor; en la consola del API puede aparecer el código en desarrollo.");
-        return;
+      setError("");
+      if (fromBoot) {
+        setBootMessage("Enviando código a tu correo…");
       }
-      if (d.outcome === "already" || d.outcome === "sent" || d.ok) {
-        setError("");
-        return;
+      if (!fromBoot) setResend(true);
+      try {
+        const r = await fetch(`${API_URL}/api/auth/send-verification-email`, {
+          method:  "POST",
+          headers: { Authorization: `Bearer ${t}`, "Content-Type": "application/json" },
+        });
+        const d = (await r.json().catch(() => ({}))) as { outcome?: string; error?: string; ok?: boolean };
+        if (r.status === 401) {
+          setError("Sesión vencida. Iniciá sesión de nuevo.");
+          if (fromBoot) setBootMessage("");
+          return;
+        }
+        if (d.outcome === "unconfigured") {
+          setUn(true);
+          setError("Falta RESEND en el servidor; en la consola del API puede aparecer el código en desarrollo.");
+          if (fromBoot) setBootMessage("");
+          return;
+        }
+        if (d.outcome === "already") {
+          setError("");
+          if (fromBoot) {
+            setBootMessage("");
+            router.replace("/");
+          }
+          return;
+        }
+        if (d.outcome === "sent" || d.ok) {
+          setError("");
+          if (fromBoot) {
+            setBootMessage("Listo, revisá tu bandeja (o spam) y pega el código abajo.");
+          }
+          return;
+        }
+        if (d.outcome === "send_failed") {
+          setError("No se pudo enviar el email. Revisá Resend y reintentá.");
+          if (fromBoot) setBootMessage("");
+          return;
+        }
+        if (fromBoot) setBootMessage("");
+      } catch {
+        setError("No se pudo conectar con el servidor");
+        if (fromBoot) setBootMessage("");
+      } finally {
+        if (!fromBoot) setResend(false);
       }
-      if (d.outcome === "send_failed") {
-        setError("No se pudo enviar el email. Revisá Resend y reintentá.");
-        return;
-      }
-    } catch {
-      setError("No se pudo conectar con el servidor");
-    } finally {
-      setResend(false);
-    }
-  }, []);
+    },
+    [router],
+  );
+
+  useEffect(() => {
+    if (bootSendOnce.current) return;
+    if (typeof window === "undefined" || !getToken()) return;
+    bootSendOnce.current = true;
+    void sendCode(true);
+  }, [sendCode]);
 
   const onSubmit = useCallback(
     async (e: React.FormEvent) => {
@@ -130,8 +162,9 @@ export default function VerifyEmailPage() {
         <div className="text-center space-y-2">
           <h1 className="text-2xl font-bold text-hi">Verificá tu email</h1>
           <p className="text-mid text-sm">
-            Te enviamos un código de 6 números (válido 10 min). Revisá el correo y pégalo acá.
+            Código de 6 números, válido 10 min. Si no te llega, usá <strong>Reenviar</strong> y mirá spam.
           </p>
+          {bootMessage && <p className="text-sm text-teal font-medium text-center">{bootMessage}</p>}
         </div>
         <form onSubmit={onSubmit} className="card p-6 space-y-4">
           {unconfigured && (
