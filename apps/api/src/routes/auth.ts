@@ -11,6 +11,7 @@ import {
 } from "../services/refreshTokenService";
 import { requestPasswordReset, resetPasswordWithToken } from "../services/passwordResetService";
 import { sendEmailVerification, confirmEmailCode } from "../services/emailVerificationService";
+import { deleteAllUserData } from "../services/deleteUserAccountService";
 export const authRouter = Router();
 
 const GOOGLE_CLIENT_ID     = process.env.GOOGLE_CLIENT_ID     ?? "";
@@ -477,6 +478,46 @@ authRouter.post("/verify-email-code", async (req: Request, res: Response) => {
   if (r === "already") { res.json({ ok: true, already: true }); return; }
   if (r === "no_user") { res.status(404).json({ error: "Usuario no encontrado" }); return; }
   res.json({ ok: true });
+});
+
+// POST /api/auth/delete-account — Bearer; body: { "emailConfirm": "tu@email.com" } (debe coincidir con el usuario)
+authRouter.post("/delete-account", async (req: Request, res: Response) => {
+  const userId = getUserIdFromAccessToken(req);
+  if (!userId) {
+    res.status(401).json({ error: "Necesitás iniciar sesión" });
+    return;
+  }
+  if (userId === "default-user") {
+    res.status(403).json({ error: "Esta cuenta no se puede eliminar" });
+    return;
+  }
+  const { emailConfirm } = (req.body ?? {}) as { emailConfirm?: string };
+  const ev = (emailConfirm ?? "").trim().toLowerCase();
+  if (!ev) {
+    res.status(400).json({ error: "Escribí tu email para confirmar" });
+    return;
+  }
+  try {
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      res.status(404).json({ error: "Usuario no encontrado" });
+      return;
+    }
+    if (user.isAdmin) {
+      res.status(403).json({ error: "Las cuentas de administrador no se pueden eliminar desde la app" });
+      return;
+    }
+    if (user.email.toLowerCase() !== ev) {
+      res.status(400).json({ error: "El email no coincide con tu cuenta" });
+      return;
+    }
+    await deleteAllUserData(userId);
+    res.clearCookie(REFRESH_COOKIE, { ...refreshCookieOptions(), maxAge: 0 });
+    res.json({ ok: true, message: "Cuenta eliminada" });
+  } catch (err) {
+    console.error("[auth/delete-account]", err);
+    res.status(500).json({ error: "No se pudo eliminar la cuenta" });
+  }
 });
 
 // GET /api/auth/me

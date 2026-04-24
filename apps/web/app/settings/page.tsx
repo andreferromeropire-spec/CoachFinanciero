@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import useSWR from "swr";
-import { fetcher, apiFetch, fetchWithAuthRetry } from "../../lib/api";
+import { fetcher, apiFetch, fetchWithAuthRetry, logoutUser } from "../../lib/api";
 import { formatCurrency } from "../../lib/format";
 import { OnboardingWizard } from "../components/onboarding/OnboardingWizard";
 
@@ -33,9 +34,17 @@ interface Settings {
 const ACCOUNT_TYPES = ["CHECKING", "SAVINGS", "CREDIT", "DIGITAL_WALLET"];
 const PROVIDERS = ["MERCADOPAGO", "PAYPAL", "WISE", "BRUBANK", "BBVA", "GALICIA", "MANUAL"];
 
+interface Me {
+  id: string;
+  email: string;
+  isAdmin: boolean;
+}
+
 export default function SettingsPage() {
+  const router = useRouter();
   const { data: accounts, mutate: mutateAccounts } = useSWR<Account[]>("/api/accounts", fetcher);
   const { data: settings, mutate: mutateSettings } = useSWR<Settings>("/api/settings", fetcher);
+  const { data: me } = useSWR<Me>("/api/auth/me", fetcher);
 
   const [newAccount, setNewAccount] = useState({
     name: "", type: "CHECKING", provider: "MANUAL", currency: "ARS", balance: "0",
@@ -66,6 +75,9 @@ export default function SettingsPage() {
   const [importLog, setImportLog]       = useState<Record<string, string>>({});
   const [importResult, setImportResult] = useState<Record<string, { imported: number; duplicates: number; errors: number }>>({});
   const [gmailToast, setGmailToast]     = useState<string | null>(null);
+  const [deleteEmail, setDeleteEmail]     = useState("");
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError, setDeleteError]     = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -90,6 +102,39 @@ export default function SettingsPage() {
       window.history.replaceState({}, "", "/settings");
     }
   }, [mutateEmails]);
+
+  async function handleDeleteMyUserAccount() {
+    if (!me?.email) {
+      setDeleteError("No se pudo cargar tu email. Recargá la página.");
+      return;
+    }
+    if (me.isAdmin) {
+      setDeleteError("La cuenta de administrador no se puede eliminar desde acá.");
+      return;
+    }
+    const m = deleteEmail.trim().toLowerCase();
+    if (m !== me.email.toLowerCase()) {
+      setDeleteError("El email no coincide con el de tu cuenta");
+      return;
+    }
+    if (!confirm("¿Seguro? Se van a borrar transacciones, presupuestos, coach y toda la cuenta. No se puede deshacer.")) {
+      return;
+    }
+    setDeleteError(null);
+    setDeleteLoading(true);
+    try {
+      await apiFetch("/api/auth/delete-account", {
+        method: "POST",
+        body: JSON.stringify({ emailConfirm: deleteEmail.trim() }),
+      });
+      await logoutUser();
+      router.replace("/login");
+    } catch (e) {
+      setDeleteError((e as Error).message);
+    } finally {
+      setDeleteLoading(false);
+    }
+  }
 
   function handleConnectGmail() {
     const token = typeof window !== "undefined" ? localStorage.getItem("coach_token") ?? "" : "";
@@ -602,6 +647,39 @@ Content-Type: application/json
 
           <p className="text-lo text-xs">Remitentes soportados: Galicia, Brubank, BBVA, Mercado Pago, PayPal, Wise</p>
         </div>
+      </Section>
+
+      <Section title="Cuenta" icon="🗑️">
+        {me?.isAdmin ? (
+          <p className="text-mid text-sm">La cuenta de administración no se puede eliminar desde la app.</p>
+        ) : (
+          <>
+            <p className="text-mid text-sm mb-4">
+              Al eliminar, se borran en el servidor tu usuario, transacciones, presupuestos, coach y ajustes. Escribí tu
+              <strong> email</strong> exacto y confirmá.
+            </p>
+            <div className="max-w-md space-y-3">
+              <input
+                type="email"
+                className="input-light w-full"
+                placeholder={me?.email ? `Ej: ${me.email}` : "tu@email.com"}
+                value={deleteEmail}
+                onChange={(e) => { setDeleteEmail(e.target.value); setDeleteError(null); }}
+                autoComplete="off"
+                disabled={deleteLoading}
+              />
+              {deleteError && <p className="text-rose-600 text-sm">{deleteError}</p>}
+              <button
+                type="button"
+                onClick={handleDeleteMyUserAccount}
+                disabled={deleteLoading}
+                className="rounded-xl px-4 py-2.5 text-sm font-semibold bg-rose-50 text-rose-800 border border-rose-200 hover:bg-rose-100 disabled:opacity-50"
+              >
+                {deleteLoading ? "Eliminando…" : "Eliminar mi cuenta definitivamente"}
+              </button>
+            </div>
+          </>
+        )}
       </Section>
 
       {process.env.NEXT_PUBLIC_PAGES_BUILD_SHA ? (
