@@ -8,8 +8,10 @@
 |---|----------------|--------|
 | 1 | **Sesión persistente** — `RefreshToken` en DB, access 15m, refresh en cookie `coach_rt` (httpOnly, `SameSite=none` + `secure` en prod, `lax` en dev), `POST /api/auth/refresh`, `POST /api/auth/logout`, web con `credentials: "include"` + refresh en 401 | hecho (ver SQL manual abajo si no usás `migrate deploy`) |
 | 2 | **Helmet + rate limiting** — `helmet()`, `trust proxy`, límites: auth 10/min, coach 20/min, ingest 50/h, global 200/min | hecho |
-| 3 | **Reset de contraseña** — `passwordResetToken` (hash) + `passwordResetExpiry` 1h, Resend, `POST /forgot-password`, `POST /reset-password`, web `/forgot-password` y `/reset-password` | **hecho** (prod: `RESEND_API_KEY` + variable correcta `RESEND_FROM` en el servicio del API, no `SEND_FROM`) |
-| 4 | **Verificación de email** — 6 dígitos, 10 min, `emailVerifiedAt` + Resend, `POST` send/verify, `/verify-email` | hecho en código; en prod: `prisma migrate deploy` (`20260425120000_email_verification`) y probar flujo |
+| 3 | **Reset de contraseña** — `passwordResetToken` (hash) + `passwordResetExpiry` 1h, Resend, `POST /forgot-password`, `POST /reset-password`, web `/forgot-password` y `/reset-password` | **hecho** (prod: `RESEND_API_KEY` + `RESEND_FROM` en el API) |
+| 4 | **Verificación de email** — 6 dígitos, 10 min, `emailVerifiedAt` + Resend, `POST` send/verify, `/verify-email` | ~~hecho~~ (migración `20260425120000`, probado) |
+| — | *Extra (no en numeración 1–15 del plan):* **Eliminar cuenta** — Ajustes + `POST /api/auth/delete-account`, confirmar con email, borrado en transacción | ~~hecho~~ |
+| 4a / UX | **Login: orden inicio de sesión vs registro** — IP o señal de “conocido”; primero *Iniciar* o *Crear cuenta* (ver `masterplan.md` §6 nota bajo ítem 15) | pendiente |
 | 5 | **Toasts + Error boundary** | pendiente |
 | 6 | **formatMoney / formatDate** centralizados | pendiente |
 | 7+ | `isInternalTransfer` / `isIgnored`, `ExchangeRate`, `LearnedRule`, matches, etc. (ver plan) | pendiente |
@@ -44,9 +46,9 @@ El script: crea un usuario de prueba, pide un código, **calcula el código a pa
 
 ### Acción inmediata
 
-- [x] Reset de contraseña y `RESEND_FROM` correcto (no `SEND_FROM`) en el API.
-- [x] **Verificación de email** en código: migración `20260425120000`, rutas, `/verify-email`, registro/ login/Google devuelven `emailVerifiedAt`.
-- [ ] En Railway: `migrate deploy` (o SQL manual de arriba) + probar email + código. Luego: **toasts** (ítem 5) y `formatMoney` (ítem 6).
+- [x] Reset de contraseña, `RESEND_FROM`, **verificación de email** (flujo probado), **eliminar cuenta** (Ajustes + API).
+- [ ] **UX login** (ítem 4a): orden inicio vs registro según IP / dispositivo (`masterplan` §6).
+- [ ] **Toasts** (ítem 5) y `formatMoney` (ítem 6).
 
 ### SQL manual en Railway (columnas reset de contraseña, ítem 3)
 

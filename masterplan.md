@@ -200,6 +200,10 @@ Cada lista/vista tiene 3 estados diseñados: loading, empty state, con datos.
 14. **Split/merge/ignorar transacciones** — edición manual completa
 15. **Auditoría multi-tenant completa** — userId en todas las queries + tests
 
+**UX de auth (cercana a toasts, puede ir con ítems 4–5 o justo antes):** En `/login` (o pantalla unificada login+registro), mostrar **primero Iniciar sesión** si el contexto es *conocido* (p. ej. la **misma IP** que ya tuvo un login exitoso, y/o señal en el **navegador** de que ya hubo sesión en este dispositivo: `localStorage` u otra heurística). Mostrar **primero Crear cuenta** si es **primera visita** en este dispositivo o **nunca** hubo inicio de sesión registrado. Al hacer login, **persistir IP** (o cabecera `X-Forwarded-For` detrás de proxy) en el usuario o en un log/auditoría, para criterio “conocido” en el API.
+
+**Extra fuera de la numeración 1–15 (ya hecho en código):** **Eliminar cuenta** desde ajustes (`POST /api/auth/delete-account` + confirmación con email) — alineado al espíritu del **ítem 32** (Fase 4) pero implementado de forma básica antes de export completo.
+
 ### Fase 2 — Modelo completo (semanas 4–6)
 
 16. 2FA con otplib + qrcode
