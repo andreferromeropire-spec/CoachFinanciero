@@ -42,7 +42,7 @@ export default function VerifyEmailPage() {
         method:  "POST",
         headers: { Authorization: `Bearer ${t}`, "Content-Type": "application/json" },
       });
-      const d = (await r.json().catch(() => ({}))) as { outcome?: string; error?: string };
+      const d = (await r.json().catch(() => ({}))) as { outcome?: string; error?: string; ok?: boolean };
       if (r.status === 401) {
         setError("Sesión vencida. Iniciá sesión de nuevo.");
         return;
