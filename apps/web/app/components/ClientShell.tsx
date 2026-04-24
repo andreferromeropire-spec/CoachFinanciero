@@ -19,8 +19,9 @@ export function ClientShell({ children }: { children: React.ReactNode }) {
     }
   }, [pathname, isAuth, router]);
 
+  /* Un solo hijo en <body> flex row: sin ancho mínimo el bloque se achica al texto y queda a la izquierda */
   if (isAuth) {
-    return <>{children}</>;
+    return <div className="w-full flex-1 min-w-0 min-h-screen self-stretch flex flex-col">{children}</div>;
   }
 
   return (

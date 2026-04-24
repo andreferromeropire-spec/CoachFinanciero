@@ -126,8 +126,16 @@ function ResetForm() {
 
 function Fallback() {
   return (
-    <div className={`${SHELL} text-mid text-sm`}>
-      Cargando…
+    <div
+      className={
+        "w-full min-h-[100dvh] min-w-0 flex flex-1 flex-col items-center justify-center bg-page p-6 text-mid text-sm"
+      }
+    >
+      <div
+        className="w-9 h-9 border-[3px] border-border border-t-teal rounded-full animate-spin mb-3"
+        aria-hidden
+      />
+      <p>Cargando…</p>
     </div>
   );
 }
