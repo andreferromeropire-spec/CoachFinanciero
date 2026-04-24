@@ -6,7 +6,8 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "smoke:limits": "tsx scripts/verify-rate-limits.ts",
-    "smoke:limits:all": "tsx scripts/verify-rate-limits.ts --all"
+    "smoke:limits:all": "tsx scripts/verify-rate-limits.ts --all",
+    "smoke:email": "tsx scripts/verify-email-flow.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.90.0",

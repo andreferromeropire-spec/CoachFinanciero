@@ -29,6 +29,19 @@ npm run smoke:limits:all
 
 Otra consola, antes: `cd apps/api && npm run dev`.
 
+### Cómo probar verificación de email (smoke + manual)
+
+**Automático (misma idea que `smoke:limits`):** con el API en `localhost:4000` y `DATABASE_URL` en `apps/api/.env` (misma base que usa el API al registrarse):
+
+```bash
+cd apps/api
+npm run smoke:email
+```
+
+El script: crea un usuario de prueba, pide un código, **calcula el código a partir del hash en la DB** (no requiere leer el mail) y llama a `POST /api/auth/verify-email-code`. Si no tenés `DATABASE_URL` en el entorno del script, solo hace registro + enviar y te indica probar a mano.
+
+**Manual (flujo real):** migración aplicada en la DB → registro o login con cuenta **sin** `emailVerifiedAt` → debería llevarte a `/verify-email` o abrí esa ruta con sesión iniciada → Revisá el mail (o en local sin Resend, a veces el código va al log del API) → ingresá los 6 números → debería marcar verificado y redirigir al inicio. Con Google, tras el callback, si el mail no está verificado te manda a la misma pantalla.
+
 ### Acción inmediata
 
 - [x] Reset de contraseña y `RESEND_FROM` correcto (no `SEND_FROM`) en el API.
