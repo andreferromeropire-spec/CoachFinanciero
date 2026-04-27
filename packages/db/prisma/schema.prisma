@@ -268,6 +268,23 @@ model Message {
   createdAt      DateTime     @default(now())
 }
 
+// ── ExchangeRate ──────────────────────────────────────────────────────────────
+// Historial de cotización USD — blue, oficial, MEP
+
+model ExchangeRate {
+  id         String   @id @default(cuid())
+  date       DateTime @default(now())
+  currency   String   @default("USD")
+  buyBlue    Decimal  @db.Decimal(10, 2)
+  sellBlue   Decimal  @db.Decimal(10, 2)
+  buyOfficial  Decimal @db.Decimal(10, 2)
+  sellOfficial Decimal @db.Decimal(10, 2)
+  source     String   @default("bluelytics")
+
+  @@index([date])
+  @@index([currency, date])
+}
+
 // ── Notification ──────────────────────────────────────────────────────────────
 // Multi-tenant ready: filtrar siempre por userId en queries
 

@@ -15,6 +15,7 @@ import { notificationsRouter } from "./routes/notifications";
 import { analyticsRouter } from "./routes/analytics";
 import { authRouter } from "./routes/auth";
 import { emailsRouter } from "./routes/emails";
+import { ratesRouter } from "./routes/rates";
 import { authMiddleware } from "./middleware/auth";
 import { startDailyCron } from "./jobs/dailyAlerts";
 
@@ -130,6 +131,7 @@ app.use("/api/coach", coachApiLimiter, coachRouter);
 app.use("/api/notifications", notificationsRouter);
 app.use("/api/analytics", analyticsRouter);
 app.use("/api/emails", emailsRouter);
+app.use("/api/rates", ratesRouter);
 
 // Global error handler — 4 parámetros obligatorios para que Express lo reconozca
 // eslint-disable-next-line @typescript-eslint/no-unused-vars

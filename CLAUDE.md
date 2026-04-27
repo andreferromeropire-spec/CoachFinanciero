@@ -106,7 +106,7 @@ formatDate(d)   // Intl.DateTimeFormat('es-AR') — guardar UTC en DB, mostrar A
 | 5 | Toasts con `sonner` + Error Boundary global en `layout.tsx` | ✅ done |
 | 6 | `formatMoney()` y `formatDate()` centralizados en `apps/web/lib/format.ts` y `apps/api/src/utils/format.ts` | ✅ done |
 | 7 | Flag `isInternalTransfer` + `isIgnored` en `Transaction` + UI para marcarlos | ✅ done |
-| 8 | Tabla `ExchangeRate` + `RateService` (cotización blue de bluelytics.com.ar) | pendiente |
+| 8 | Tabla `ExchangeRate` + `RateService` (cotización blue de bluelytics.com.ar) | ✅ done |
 | 9 | Campo `currency` + `exchangeRate` en `Transaction` | pendiente |
 | 10 | Tabla `LearnedRule` + `CategoryMapper` que las prioriza | pendiente |
 | 11 | Wizard "¿De qué fue esto?" para transacciones ambiguas | pendiente |
