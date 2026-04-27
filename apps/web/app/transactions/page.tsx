@@ -31,10 +31,17 @@ interface TxData {
     currency: string;
     description?: string;
     merchant?: string;
+    merchantNormalized?: string;
     category?: string;
     date: string;
     source: string;
     account?: { name: string; provider: string };
+    isInternalTransfer?: boolean;
+    isIgnored?: boolean;
+    isShared?: boolean;
+    sharedWith?: number | null;
+    sharedStatus?: "PENDING" | "PARTIALLY_PAID" | "SETTLED" | null;
+    yourShare?: string | null;
   }[];
   meta: { total: number; page: number; totalPages: number };
 }
@@ -240,7 +247,7 @@ export default function TransactionsPage() {
           </thead>
           <tbody>
             {data?.data?.map((tx) => (
-              <TransactionRow key={tx.id} tx={tx} onCategoryChange={handleCategoryChange} />
+              <TransactionRow key={tx.id} tx={tx} onCategoryChange={handleCategoryChange} onFlagChange={mutate} />
             ))}
             {(!data || data.data.length === 0) && (
               <tr>

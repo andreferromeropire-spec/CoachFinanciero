@@ -75,7 +75,7 @@ export class BudgetEngine {
     const { start, end } = periodRange(period);
 
     const txs = await prisma.transaction.findMany({
-      where: { date: { gte: start, lte: end }, isDuplicate: false },
+      where: { date: { gte: start, lte: end }, isDuplicate: false, isIgnored: false, isInternalTransfer: false },
       select: { amount: true, category: true, merchant: true, merchantNormalized: true, date: true, isShared: true, sharedStatus: true, yourShare: true },
     });
 
@@ -184,6 +184,8 @@ export class BudgetEngine {
         date: { gte: start, lte: end },
         category: "Finanzas",
         isDuplicate: false,
+        isIgnored: false,
+        isInternalTransfer: false,
       },
       select: { amount: true },
     });
@@ -305,6 +307,8 @@ export class BudgetEngine {
       where: {
         date: { gte: start },
         isDuplicate: false,
+        isIgnored: false,
+        isInternalTransfer: false,
         amount: { lt: 0 },
       },
       _sum: { amount: true },

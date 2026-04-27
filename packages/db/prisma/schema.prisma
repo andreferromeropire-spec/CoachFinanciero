@@ -148,6 +148,8 @@ model Transaction {
   source             TransactionSource @default(MANUAL)
   rawData            Json?
   isDuplicate        Boolean           @default(false)
+  isInternalTransfer Boolean           @default(false)
+  isIgnored          Boolean           @default(false)
   isShared           Boolean           @default(false)
   sharedWith         Int?
   sharedStatus       SharedStatus      @default(SETTLED)

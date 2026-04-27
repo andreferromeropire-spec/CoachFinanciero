@@ -19,8 +19,11 @@ transactionsRouter.get("/", async (req: Request, res: Response) => {
   const pageNum = Math.max(1, parseInt(page ?? "1", 10));
   const skip = (pageNum - 1) * PAGE_SIZE;
 
+  const { showIgnored } = req.query as Record<string, string | undefined>;
+
   const where = {
     isDuplicate: false,
+    ...(showIgnored !== "true" && { isIgnored: false }),
     ...(accountId && { accountId }),
     ...(category && { category }),
     ...(source && { source: source as "API" | "EMAIL" | "CSV" | "MANUAL" }),
@@ -60,13 +63,15 @@ transactionsRouter.get("/", async (req: Request, res: Response) => {
 
 transactionsRouter.patch("/:id", async (req: Request, res: Response) => {
   const { id } = req.params;
-  const { category, description } = req.body;
+  const { category, description, isInternalTransfer, isIgnored } = req.body;
   try {
     const tx = await prisma.transaction.update({
       where: { id },
       data: {
         ...(category !== undefined && { category }),
         ...(description !== undefined && { description }),
+        ...(isInternalTransfer !== undefined && { isInternalTransfer }),
+        ...(isIgnored !== undefined && { isIgnored }),
       },
     });
     res.json(tx);

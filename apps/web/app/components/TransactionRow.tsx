@@ -19,12 +19,15 @@ interface Tx {
   sharedWith?: number | null;
   sharedStatus?: "PENDING" | "PARTIALLY_PAID" | "SETTLED" | null;
   yourShare?: string | number | null;
+  isInternalTransfer?: boolean;
+  isIgnored?: boolean;
 }
 
 interface TransactionRowProps {
   tx: Tx;
   onCategoryChange?: (id: string, category: string) => void;
   onSharedUpdate?: () => void;
+  onFlagChange?: () => void;
 }
 
 const CATEGORIES = [
@@ -178,8 +181,22 @@ function SharedPopover({
   );
 }
 
-export function TransactionRow({ tx, onCategoryChange, onSharedUpdate }: TransactionRowProps) {
+export function TransactionRow({ tx, onCategoryChange, onSharedUpdate, onFlagChange }: TransactionRowProps) {
   const [showSharedPopover, setShowSharedPopover] = useState(false);
+  const [flagLoading, setFlagLoading] = useState(false);
+
+  async function toggleFlag(field: "isInternalTransfer" | "isIgnored", current: boolean) {
+    setFlagLoading(true);
+    try {
+      await fetchWithAuthRetry(`/api/transactions/${tx.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ [field]: !current }),
+      });
+      onFlagChange?.();
+    } finally {
+      setFlagLoading(false);
+    }
+  }
 
   const amount = typeof tx.amount === "string" ? parseFloat(tx.amount) : tx.amount;
   const isPositive = amount >= 0;
@@ -192,8 +209,10 @@ export function TransactionRow({ tx, onCategoryChange, onSharedUpdate }: Transac
     ? Math.abs(typeof tx.yourShare === "string" ? parseFloat(tx.yourShare) : tx.yourShare)
     : null;
 
+  const rowOpacity = tx.isIgnored ? "opacity-40" : "";
+
   return (
-    <tr className="group border-b border-border/60 hover:bg-raised/70 transition-colors duration-150">
+    <tr className={`group border-b border-border/60 hover:bg-raised/70 transition-colors duration-150 ${rowOpacity}`}>
       {/* Date */}
       <td className="px-3 md:px-5 py-3 md:py-3.5 text-mid text-xs whitespace-nowrap font-medium">{formatDate(tx.date)}</td>
 
@@ -235,6 +254,32 @@ export function TransactionRow({ tx, onCategoryChange, onSharedUpdate }: Transac
           <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-md border ${source.style}`}>
             {source.label}
           </span>
+          {/* Internal transfer chip */}
+          <button
+            onClick={() => toggleFlag("isInternalTransfer", !!tx.isInternalTransfer)}
+            disabled={flagLoading}
+            title="Transferencia interna (no cuenta en gastos)"
+            className={`text-[10px] font-semibold px-2 py-0.5 rounded-md border transition-colors ${
+              tx.isInternalTransfer
+                ? "bg-purple/10 text-purple border-purple/20"
+                : "bg-raised text-lo border-border hover:border-purple/30 hover:text-purple"
+            }`}
+          >
+            ↔
+          </button>
+          {/* Ignored chip */}
+          <button
+            onClick={() => toggleFlag("isIgnored", !!tx.isIgnored)}
+            disabled={flagLoading}
+            title="Ignorar (no cuenta en ningún cálculo)"
+            className={`text-[10px] font-semibold px-2 py-0.5 rounded-md border transition-colors ${
+              tx.isIgnored
+                ? "bg-danger/10 text-danger border-danger/20"
+                : "bg-raised text-lo border-border hover:border-danger/30 hover:text-danger"
+            }`}
+          >
+            ✕
+          </button>
           {/* Shared chip */}
           <div className="relative">
             <button
