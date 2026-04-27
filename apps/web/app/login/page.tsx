@@ -65,6 +65,7 @@ export default function LoginPage() {
   useEffect(() => {
     if (typeof window !== "undefined") {
       if (localStorage.getItem("coach_token")) {
+        localStorage.setItem("coach_known_device", "1");
         router.replace("/");
       } else if (localStorage.getItem("coach_known_device")) {
         setMode("login");
