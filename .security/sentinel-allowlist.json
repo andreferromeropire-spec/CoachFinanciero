@@ -1,0 +1,7 @@
+{
+  "paths": [
+    "process.env"
+  ],
+  "domains": [],
+  "commands": []
+}

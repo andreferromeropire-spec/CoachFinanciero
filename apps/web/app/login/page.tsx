@@ -63,8 +63,12 @@ export default function LoginPage() {
 
   useEffect(() => { setGreet(greeting()); }, []);
   useEffect(() => {
-    if (typeof window !== "undefined" && localStorage.getItem("coach_token")) {
-      router.replace("/");
+    if (typeof window !== "undefined") {
+      if (localStorage.getItem("coach_token")) {
+        router.replace("/");
+      } else if (localStorage.getItem("coach_known_device")) {
+        setMode("login");
+      }
     }
   }, [router]);
 
@@ -93,6 +97,7 @@ export default function LoginPage() {
         try { data = await res.json(); } catch { /* no-JSON */ }
         if ((res.status === 201 || res.ok) && data.token) {
           localStorage.setItem("coach_token", data.token);
+          localStorage.setItem("coach_known_device", "1");
           if (data.user && !data.user.emailVerifiedAt) {
             router.push("/verify-email");
           } else {
@@ -123,6 +128,7 @@ export default function LoginPage() {
         try { data = await res.json(); } catch { /* no-JSON */ }
         if (res.ok && data.token) {
           localStorage.setItem("coach_token", data.token);
+          localStorage.setItem("coach_known_device", "1");
           if (data.user && !data.user.emailVerifiedAt) {
             router.push("/verify-email");
           } else {

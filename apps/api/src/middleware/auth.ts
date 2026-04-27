@@ -1,7 +1,15 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 
-const JWT_SECRET = process.env.JWT_SECRET ?? "coach-financiero-dev-secret";
+const _rawSecret = process.env.JWT_SECRET;
+if (!_rawSecret) {
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("[auth] JWT_SECRET no configurado. Definí esta variable en Railway.");
+  }
+  console.warn("[auth] ⚠️  JWT_SECRET no configurado — usando fallback inseguro (solo desarrollo).");
+}
+const JWT_SECRET = _rawSecret ?? "coach-financiero-dev-secret";
+
 const DEFAULT_USER_ID = "default-user";
 
 export interface AuthRequest extends Request {

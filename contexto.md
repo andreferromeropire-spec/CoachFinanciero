@@ -1,6 +1,6 @@
 # Coach Financiero — Contexto de producto y roadmap
 
-**Última actualización:** abril 2026  
+**Última actualización:** 20 abr 2026  
 Este archivo describe el **alcance real** del código hoy, la **visión** hacia un producto “autopilot” financiero, y un **plan por fases** con pasos accionables. Los ítems **ya implementados** van con `[x]` y ~~tachados~~.
 
 > **Prioridad y orden del MVP:** La fuente canónica es **`masterplan.md`** (en particular **§4 buenas prácticas** y **§6 orden de implementación**). Si el texto de este `contexto.md` entrara en conflicto con el master plan, manda el plan maestro.
@@ -54,6 +54,7 @@ Monorepo: **`apps/web`** (Next.js 14), **`apps/api`** (Express + TS), **`package
 | ~~**Recuperar contraseña** (Resend, `RESEND_FROM` en el API, forgot/reset)~~ | `[x]` |
 | ~~**Verificación de email** (6 dígitos, `/verify-email`, send/verify, probado en prod)~~ | `[x]` |
 | ~~**Eliminar cuenta** (Ajustes, `POST /api/auth/delete-account`, confirmar email)~~ | `[x]` (anticipo respecto a ítem 32 GDPR del `masterplan`) |
+| ~~Rutas auth: `ClientShell` envuelve en contenedor `w-full flex-1` (el `body` en flex dejaba texto/“Cargando…” pegado a la izquierda); fallback de `/reset-password` (Suspense) a pantalla completa y centrado~~ | `[x]` |
 | PWA / offline | `[ ]` parcial (`next-pwa` existe; alcance UX no auditado aquí) |
 
 ### 1.4 Lo que **no** es hoy (importante)

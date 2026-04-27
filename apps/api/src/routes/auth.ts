@@ -1,5 +1,6 @@
 import { Router, Request, Response } from "express";
 import bcrypt from "bcryptjs";
+import { z } from "zod";
 import { prisma } from "@coach/db";
 import { createAccessToken, getUserIdFromAccessToken } from "../middleware/auth";
 import {
@@ -12,6 +13,33 @@ import {
 import { requestPasswordReset, resetPasswordWithToken } from "../services/passwordResetService";
 import { sendEmailVerification, confirmEmailCode } from "../services/emailVerificationService";
 import { deleteAllUserData } from "../services/deleteUserAccountService";
+
+// ── Schemas de validación ─────────────────────────────────────────────────────
+
+const passwordSchema = z
+  .string()
+  .min(8, "La contraseña debe tener al menos 8 caracteres")
+  .max(128, "La contraseña es demasiado larga")
+  .regex(/[A-Z]/, "La contraseña debe incluir al menos una mayúscula")
+  .regex(/[0-9]/, "La contraseña debe incluir al menos un número");
+
+const loginSchema = z.object({
+  email: z.string().email("Formato de email inválido").max(255),
+  password: z.string().min(1, "La contraseña es obligatoria").max(128),
+});
+
+const registerSchema = z.object({
+  name: z.string().min(1, "El nombre es obligatorio").max(100),
+  email: z.string().email("Formato de email inválido").max(255),
+  password: passwordSchema,
+});
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function firstZodError(result: { error: z.ZodError }): string {
+  return result.error.issues[0]?.message ?? "Datos inválidos";
+}
+
 export const authRouter = Router();
 
 const GOOGLE_CLIENT_ID     = process.env.GOOGLE_CLIENT_ID     ?? "";
@@ -71,38 +99,32 @@ function resolveGmailRedirectUri(): string {
 
 // POST /api/auth/login
 authRouter.post("/login", async (req: Request, res: Response) => {
-  const { email, password } = req.body as { email?: string; password?: string };
-
-  if (!email || !password) {
-    res.status(400).json({ error: "email and password are required" });
+  const parsed = loginSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: firstZodError(parsed), code: "VALIDATION_ERROR" });
     return;
   }
 
-  const emailNorm = email.trim().toLowerCase();
+  const emailNorm = parsed.data.email.trim().toLowerCase();
+  const { password } = parsed.data;
 
   try {
     const user = await prisma.user.findFirst({
       where: { email: { equals: emailNorm, mode: "insensitive" } },
     });
-    if (!user) {
-      res.status(401).json({ error: "Invalid credentials" });
-      return;
-    }
-
-    const valid = await bcrypt.compare(password, user.password);
-    if (!valid) {
-      res.status(401).json({ error: "Invalid credentials" });
+    // Misma respuesta si no existe el usuario o la contraseña es incorrecta (evita user enumeration)
+    if (!user || !(await bcrypt.compare(password, user.password))) {
+      res.status(401).json({ error: "Email o contraseña incorrectos", code: "INVALID_CREDENTIALS" });
       return;
     }
 
     const status = (user as { status?: string }).status;
     if (status === "waitlist") {
-      res.status(403).json({ error: "Account pending approval", waitlist: true });
+      res.status(403).json({ error: "Tu cuenta está en lista de espera", code: "WAITLIST", waitlist: true });
       return;
     }
-
     if (status === "blocked") {
-      res.status(403).json({ error: "Account blocked" });
+      res.status(403).json({ error: "Tu cuenta fue bloqueada. Contactá soporte.", code: "ACCOUNT_BLOCKED" });
       return;
     }
 
@@ -112,59 +134,44 @@ authRouter.post("/login", async (req: Request, res: Response) => {
     res.json({ token: accessToken, user: sessionUserFromDb(user) });
   } catch (err) {
     console.error("[auth/login]", err);
-    res.status(500).json({ error: "Server error, please try again" });
+    res.status(500).json({ error: "Error del servidor, intentá de nuevo", code: "SERVER_ERROR" });
   }
 });
 
 // POST /api/auth/register
 authRouter.post("/register", async (req: Request, res: Response) => {
-  const { name, email, password } = req.body as {
-    name?: string; email?: string; password?: string;
-  };
-
-  if (!name || !email || !password) {
-    res.status(400).json({ error: "name, email and password are required" });
+  const parsed = registerSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: firstZodError(parsed), code: "VALIDATION_ERROR" });
     return;
   }
 
-  const emailNorm = email.trim().toLowerCase();
-
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(emailNorm)) {
-    res.status(400).json({ error: "Invalid email format" });
-    return;
-  }
-
-  if (password.length < 8) {
-    res.status(400).json({ error: "Password must be at least 8 characters" });
-    return;
-  }
+  const { name, password } = parsed.data;
+  const emailNorm = parsed.data.email.trim().toLowerCase();
 
   try {
     const existing = await prisma.user.findFirst({
       where: { email: { equals: emailNorm, mode: "insensitive" } },
     });
     if (existing) {
-      res.status(409).json({ error: "Email already registered" });
+      res.status(409).json({ error: "Ya existe una cuenta con ese email", code: "EMAIL_TAKEN" });
       return;
     }
 
     const hash = await bcrypt.hash(password, 12);
-
     const user = await prisma.user.create({
       data: { name, email: emailNorm, password: hash, status: "active" },
     });
-
     await prisma.userSettings.create({ data: { userId: user.id } });
 
     const accessToken = createAccessToken(user.id);
     const refreshRaw  = await createRefreshTokenRecord(user.id, req);
     res.cookie(REFRESH_COOKIE, refreshRaw, refreshCookieOptions());
-    // El mail con el código se envía al abrir /verify-email (también cuentas ya registradas sin verificar)
+    // El código de verificación se envía al abrir /verify-email
     res.status(201).json({ token: accessToken, user: sessionUserFromDb(user) });
   } catch (err) {
     console.error("[auth/register]", err);
-    res.status(500).json({ error: "Server error, please try again" });
+    res.status(500).json({ error: "Error del servidor, intentá de nuevo", code: "SERVER_ERROR" });
   }
 });
 

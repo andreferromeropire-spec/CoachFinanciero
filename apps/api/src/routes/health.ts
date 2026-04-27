@@ -27,12 +27,16 @@ healthRouter.get("/", async (_req: Request, res: Response) => {
     }
   }
 
+  const isProd = process.env.NODE_ENV === "production";
   res.json({
-    status: "ok",
+    status: dbStatus === "connected" ? "ok" : "degraded",
     db: dbStatus,
-    userQuery: userQueryStatus,
-    userCount,
-    errorDetail: errorDetail || undefined,
+    // En producción solo exponemos el estado, no detalles internos
+    ...(!isProd && {
+      userQuery: userQueryStatus,
+      userCount,
+      errorDetail: errorDetail || undefined,
+    }),
     timestamp: new Date().toISOString(),
   });
 });

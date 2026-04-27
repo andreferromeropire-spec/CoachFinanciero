@@ -21,10 +21,23 @@ import { startDailyCron } from "./jobs/dailyAlerts";
 const app = express();
 const PORT = process.env.PORT || 4000;
 
+// Falla rápido si faltan secrets críticos en producción
+if (process.env.NODE_ENV === "production" && !process.env.JWT_SECRET) {
+  console.error("[api] ✗ JWT_SECRET no configurado. La aplicación no puede iniciar en producción.");
+  process.exit(1);
+}
+
 /** Railway y proxies — IP real para rate limit */
 app.set("trust proxy", 1);
 
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'none'"],
+      frameAncestors: ["'none'"],
+    },
+  },
+}));
 
 const err429 = (code: string) => (_req: express.Request, res: express.Response) => {
   res.status(429).json({
@@ -118,10 +131,34 @@ app.use("/api/notifications", notificationsRouter);
 app.use("/api/analytics", analyticsRouter);
 app.use("/api/emails", emailsRouter);
 
+// Global error handler — 4 parámetros obligatorios para que Express lo reconozca
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  console.error("[api] Error no manejado:", err.message ?? err);
+  if (!res.headersSent) {
+    res.status(500).json({ error: "Error interno del servidor", code: "INTERNAL_ERROR" });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`[api] ✓ Server running on http://localhost:${PORT}`);
   console.log(`[api]   health | ingest/(email,csv,imap) | webhooks/(mp,paypal,wise)`);
   console.log(`[api]   accounts | transactions | budget | settings | coach | notifications | analytics`);
+  {
+    const key  = (process.env.RESEND_API_KEY ?? "").trim();
+    const from = (process.env.RESEND_FROM ?? "").trim();
+    const usaPrueba = !from || /onboarding@resend\.dev/i.test(from) || from.includes("resend.dev");
+    if (key) {
+      console.log(
+        `[api]   Resend: clave = sí, remitente = "${from || "(vacío)"}"`,
+        usaPrueba
+          ? "— si ves 403, definí en Railway RESEND_FROM con notificaciones@TUDOMINIO verificado (no dejes onboarding@resend.dev)."
+          : "(dominio propio)",
+      );
+    } else {
+      console.log(`[api]   Resend: clave = no (mail de recuperar contraseña desactivado)`);
+    }
+  }
   startDailyCron();
 });
 
