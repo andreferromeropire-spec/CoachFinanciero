@@ -2,8 +2,10 @@
 
 import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { Toaster } from "sonner";
 import { Sidebar } from "./Sidebar";
 import { BottomNav } from "./BottomNav";
+import { ErrorBoundary } from "./ErrorBoundary";
 
 const AUTH_PATHS = ["/login", "/register", "/waitlist-pending", "/forgot-password", "/reset-password", "/auth"];
 
@@ -21,11 +23,16 @@ export function ClientShell({ children }: { children: React.ReactNode }) {
 
   /* Un solo hijo en <body> flex row: sin ancho mínimo el bloque se achica al texto y queda a la izquierda */
   if (isAuth) {
-    return <div className="w-full flex-1 min-w-0 min-h-screen self-stretch flex flex-col">{children}</div>;
+    return (
+      <ErrorBoundary>
+        <div className="w-full flex-1 min-w-0 min-h-screen self-stretch flex flex-col">{children}</div>
+        <Toaster position="top-right" richColors />
+      </ErrorBoundary>
+    );
   }
 
   return (
-    <>
+    <ErrorBoundary>
       <div className="hidden md:block">
         <Sidebar />
       </div>
@@ -33,6 +40,7 @@ export function ClientShell({ children }: { children: React.ReactNode }) {
         {children}
       </main>
       <BottomNav />
-    </>
+      <Toaster position="top-right" richColors />
+    </ErrorBoundary>
   );
 }
