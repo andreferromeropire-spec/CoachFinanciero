@@ -7,12 +7,15 @@ export function formatCurrency(amount: number | string, currency = "ARS"): strin
   }).format(n);
 }
 
+export const formatMoney = formatCurrency;
+
 export function formatDate(date: string | Date): string {
-  return new Date(date).toLocaleDateString("es-AR", {
+  return new Intl.DateTimeFormat("es-AR", {
     day: "2-digit",
     month: "short",
     year: "numeric",
-  });
+    timeZone: "America/Argentina/Buenos_Aires",
+  }).format(new Date(date));
 }
 
 export function sourceIcon(source: string): string {
